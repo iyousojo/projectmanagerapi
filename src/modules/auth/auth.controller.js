@@ -1,41 +1,15 @@
 const AuthService = require("./auth.service");
 
 class AuthController {
-  // 1. App calls this after opening from the Netlify 'Verified' link
-  verifyEmail = async (req, res) => {
+  register = async (req, res) => {
     try {
-      const token = req.body.token || req.params.token;
-      await AuthService.verifyEmail(token);
-      return res.status(200).json({ 
-        status: "success", 
-        message: "Email verified successfully!" 
-      });
+      await AuthService.register(req.body);
+      return res.status(201).json({ status: "success", message: "Check email." });
     } catch (err) {
       return res.status(400).json({ status: "error", message: err.message });
     }
   };
 
-  // 2. App calls this when user enters email in 'Forgot Password' screen
-  forgotPassword = async (req, res) => {
-    try {
-      await AuthService.forgotPassword(req.body.email);
-      return res.json({ status: "success", message: "Reset link sent to email." });
-    } catch (err) {
-      return res.status(400).json({ status: "error", message: err.message });
-    }
-  };
-
-  // 3. App calls this when user clicks 'Submit' on the 'New Password' screen
-  resetPassword = async (req, res) => {
-    try {
-      await AuthService.resetPassword(req.body.token, req.body.password);
-      return res.json({ status: "success", message: "Password reset successful." });
-    } catch (err) {
-      return res.status(400).json({ status: "error", message: err.message });
-    }
-  };
-
-  // Standard Login/Register
   login = async (req, res) => {
     try {
       const { user, token } = await AuthService.login(req.body.email, req.body.password);
@@ -44,6 +18,35 @@ class AuthController {
       return res.status(401).json({ status: "error", message: err.message });
     }
   };
+
+  verifyEmail = async (req, res) => {
+    try {
+      const token = req.body.token || req.params.token;
+      await AuthService.verifyEmail(token);
+      return res.json({ status: "success", message: "Verified!" });
+    } catch (err) {
+      return res.status(400).json({ status: "error", message: err.message });
+    }
+  };
+
+  forgotPassword = async (req, res) => {
+    try {
+      await AuthService.forgotPassword(req.body.email);
+      return res.json({ status: "success", message: "Reset link sent." });
+    } catch (err) {
+      return res.status(400).json({ status: "error", message: err.message });
+    }
+  };
+
+  resetPassword = async (req, res) => {
+    try {
+      await AuthService.resetPassword(req.body.token, req.body.password);
+      return res.json({ status: "success", message: "Password updated." });
+    } catch (err) {
+      return res.status(400).json({ status: "error", message: err.message });
+    }
+  };
 }
 
+// ✅ CRITICAL: You MUST use 'new' and it MUST be at the bottom
 module.exports = new AuthController();
