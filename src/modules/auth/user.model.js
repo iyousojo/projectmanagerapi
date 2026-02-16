@@ -11,7 +11,17 @@ const userSchema = new mongoose.Schema({
     enum: ["student", "admin", "super-admin"], 
     default: "student" 
   },
-  phone: { type: String, required: true }, // ✅ Updated: Now required
+  phone: { type: String, required: true },
+  
+  // ✅ NEW FIELDS ADDED
+  gender: { 
+    type: String, 
+    enum: ["Male", "Female", "Other"], 
+    required: false // Set to true if you want to force this selection
+  },
+  faculty: { type: String, required: false },
+  department: { type: String, required: false },
+
   profilePic: String,
   isAuthorized: { type: Boolean, default: false },
   emailVerified: { type: Boolean, default: false },
@@ -26,11 +36,14 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: Date
 }, { timestamps: true });
 
+// --- Middleware & Methods ---
+
 // Hash password before saving
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
@@ -43,19 +56,14 @@ userSchema.methods.generateEmailToken = function () {
   return token;
 };
 
-// ✅ ADDED: Method to generate password reset token
 userSchema.methods.generateResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
-
-  // Hash the token and save to database
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
 
-  // Set expiration time to 30 minutes from now
-  this.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
-
+  this.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 mins
   return resetToken;
 };
 
