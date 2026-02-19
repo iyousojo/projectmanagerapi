@@ -1,9 +1,9 @@
 const AuthService = require("./auth.service");
 
 class AuthController {
-  register = async (req, res) => {
+  // ✅ Added 'next' to all methods to prevent middleware "not a function" errors
+  register = async (req, res, next) => {
     try {
-      // Pass the whole body (name, email, password, faculty, department, phone, etc.)
       await AuthService.register(req.body);
       return res.status(201).json({ 
         status: "success", 
@@ -14,7 +14,7 @@ class AuthController {
     }
   };
 
-  login = async (req, res) => {
+  login = async (req, res, next) => {
     try {
       const { user, token } = await AuthService.login(req.body.email, req.body.password);
       return res.json({ status: "success", user, token });
@@ -23,9 +23,8 @@ class AuthController {
     }
   };
 
-  verifyEmail = async (req, res) => {
+  verifyEmail = async (req, res, next) => {
     try {
-      // Get both email and token from the request
       const { email, token } = req.body; 
       
       if (!email || !token) {
@@ -39,7 +38,7 @@ class AuthController {
     }
   };
 
-  forgotPassword = async (req, res) => {
+  forgotPassword = async (req, res, next) => {
     try {
       await AuthService.forgotPassword(req.body.email);
       return res.json({ status: "success", message: "Reset link sent." });
@@ -48,7 +47,7 @@ class AuthController {
     }
   };
 
-  resetPassword = async (req, res) => {
+  resetPassword = async (req, res, next) => {
     try {
       await AuthService.resetPassword(req.body.token, req.body.password);
       return res.json({ status: "success", message: "Password updated." });

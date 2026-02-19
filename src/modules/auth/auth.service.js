@@ -11,33 +11,37 @@ class AuthService {
       if (existingUser.emailVerified) {
         throw new Error("Email already in use and verified.");
       } else {
-        // Logic: Allow re-registration by deleting the old unverified account
+        // Clear out old unverified attempts to allow a fresh start
         await AuthRepository.deleteUser(existingUser._id);
       }
     }
 
-    // ✅ Logic: Auto-authorize Admins and Super-Admins
     const userData = {
       ...data,
       role: role || "student",
-      isAuthorized: (role === "admin" || role === "super-admin") ? true : false
+      isAuthorized: (role === "admin" || role === "super-admin")
     };
 
     const user = await AuthRepository.createUser(userData);
-    const token = user.generateEmailToken(); // Ensure this generates a 6-digit code in User model
+    
+    // Generate the 6-digit token (Make sure this logic is in your User model)
+    const token = user.generateEmailToken(); 
     await AuthRepository.update(user);
 
     await EmailService.sendVerificationEmail(user.email, token);
     return user;
   }
 
-  // ✅ UPDATED: Accepts email and token for precision
   async verifyEmail(email, token) {
     const user = await AuthRepository.findByEmail(email);
     
     if (!user) throw new Error("User not found.");
     if (user.emailVerified) throw new Error("Email already verified.");
-    if (user.emailVerificationToken !== token) throw new Error("Invalid or expired code.");
+    
+    // Strict comparison for the 6-digit OTP
+    if (user.emailVerificationToken !== token) {
+      throw new Error("Invalid or expired verification code.");
+    }
 
     user.emailVerified = true;
     user.emailVerificationToken = undefined;
