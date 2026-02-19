@@ -1,7 +1,7 @@
+// users.controller.js
 const UsersService = require("./users.service");
 
 class UsersController {
-  // 1. Get logged-in user details (Me)
   getProfile = async (req, res) => {
     try {
       const user = await UsersService.getProfile(req.user.id);
@@ -11,60 +11,52 @@ class UsersController {
     }
   };
 
-  // 2. GET /my-students OR /superadmin/students
   getStudentsList = async (req, res) => {
     try {
-      const { status } = req.query; // 'assigned', 'unassigned'
+      const { status } = req.query; // e.g., ?status=unassigned
       
-      // If Admin, only show their students. If Super-Admin, show all based on query.
+      /**
+       * ROLE LOGIC:
+       * 1. If user is 'admin', we MUST pass their ID to filter the database.
+       * 2. If user is 'super-admin', we pass null so they can see everyone.
+       */
       const supervisorId = req.user.role === "admin" ? req.user.id : null;
       
       const students = await UsersService.getFilteredStudents(status, supervisorId);
-      res.json({ status: "success", count: students.length, students });
+      
+      // Sending back the array directly helps avoid Frontend mapping errors
+      res.status(200).json(students);
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
 
-  // 3. Get all Admins (For Super-Admin Postman route)
   getAllAdmins = async (req, res) => {
     try {
       const admins = await UsersService.getAllAdmins();
-      res.json({ status: "success", count: admins.length, admins });
+      res.status(200).json(admins);
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
 
-  // 4. Super-Admin or Admin: Pair a student with a supervisor
   authorizeStudent = async (req, res) => {
     try {
       const { studentId, supervisorId } = req.body;
-      
       if (!studentId || !supervisorId) {
-        return res.status(400).json({ 
-          status: "error", 
-          message: "Both studentId and supervisorId are required." 
-        });
+        return res.status(400).json({ message: "Missing studentId or supervisorId" });
       }
-
       const user = await UsersService.authorizeStudent(studentId, supervisorId);
-      res.json({ 
-        status: "success", 
-        message: "Student authorized and paired successfully", 
-        user 
-      });
+      res.json({ status: "success", user });
     } catch (err) {
-      // This will catch the "unverified" error from the service
       res.status(400).json({ status: "error", message: err.message });
     }
   };
 
-  // 5. Super-Admin: Dashboard Stats
   getAdminsDashboard = async (req, res) => {
     try {
       const stats = await UsersService.getSuperAdminStats();
-      res.json({ status: "success", data: stats });
+      res.json(stats);
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
     }
