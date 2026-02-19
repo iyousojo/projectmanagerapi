@@ -11,7 +11,8 @@ router.get("/me", UsersController.getProfile);
 
 // Admin Routes: Manage assigned students
 router.get("/my-students", roleMiddleware(["admin"]), UsersController.getStudentsList);
-
+// Add this under router.get("/me", ...)
+router.get("/", UsersController.getStudentsList);
 // Super-Admin Routes: Authorize and Dashboards
 router.post("/authorize", roleMiddleware(["super-admin"]), UsersController.authorizeStudent);
 router.get("/superadmin/admins", roleMiddleware(["super-admin"]), UsersController.getAllAdmins);

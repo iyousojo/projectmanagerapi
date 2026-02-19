@@ -1,33 +1,65 @@
 const NotificationRepository = require("./notification.repository");
 const Project = require("../project/project.model");
 const User = require("../auth/user.model");
+const axios = require("axios"); // 👈 Need axios for Expo API
 
 class NotificationsService {
-  socket = null; // store socket.io instance
+  socket = null;
 
   setSocket(io) {
     this.socket = io;
   }
 
-  // 🔹 Base creator
+  // 🔹 Base creator (Modified to handle Database, Socket, and Push)
   async createNotification({ recipient, message, type = "info" }) {
+    // 1. SAVE TO DATABASE
     const notification = await NotificationRepository.create({ recipient, message, type });
 
-    // 🔔 Emit real-time notification if socket exists
+    // 2. REAL-TIME EMIT (Socket.io)
     if (this.socket && recipient) {
       this.socket.to(recipient.toString()).emit("receiveNotification", notification);
+    }
+
+    // 3. EXTERNAL PUSH (Expo)
+    try {
+      const user = await User.findById(recipient).select("expoPushToken");
+      
+      // Only send if the user has a registered token
+      if (user && user.expoPushToken) {
+        await axios.post("https://exp.host/--/api/v2/push/send", {
+          to: user.expoPushToken,
+          sound: "default",
+          title: this._getPushTitle(type),
+          body: message,
+          data: { notificationId: notification._id, type },
+          priority: "high"
+        });
+      }
+    } catch (err) {
+      console.error("Push Notification Error:", err.message);
+      // We don't throw error here so the rest of the app doesn't crash if push fails
     }
 
     return notification;
   }
 
-  // ... rest of your methods (projectPhaseChanged, studentAssigned, etc.)
+  // Helper to make push notifications look professional
+  _getPushTitle(type) {
+    switch (type) {
+      case "assignment": return "New Assignment 👤";
+      case "task": return "Task Update 📋";
+      case "deadline": return "Deadline Warning ⚠️";
+      default: return "Project Manager Update";
+    }
+  }
+
+  /* --- EXISTING METHODS CALLING THE NEW CREATE LOGIC --- */
+
   async projectPhaseChanged(projectId, newPhase) {
     const project = await Project.findById(projectId).populate("lead").populate("members");
     if (!project) throw new Error("Project not found");
 
     const recipients = [project.lead?._id, ...project.members.map(m => m._id)].filter(Boolean);
-
     for (const userId of recipients) {
       await this.createNotification({
         recipient: userId,
@@ -40,7 +72,6 @@ class NotificationsService {
   async studentAssigned(studentId, adminId) {
     const student = await User.findById(studentId);
     if (!student) throw new Error("Student not found");
-
     await this.createNotification({
       recipient: adminId,
       message: `${student.fullName} has been assigned to you.`,
@@ -75,6 +106,16 @@ class NotificationsService {
     }
   }
 
+  async supervisorAssignedToStudent(studentId, adminName) {
+    await this.createNotification({
+      recipient: studentId,
+      message: `Success! ${adminName} has been assigned as your supervisor. You can now access your project.`,
+      type: "assignment"
+    });
+  }
+
+  /* --- DATA RETRIEVAL METHODS --- */
+
   async getNotifications(user) {
     return NotificationRepository.getByRecipient(user._id);
   }
@@ -90,14 +131,6 @@ class NotificationsService {
   async getUnreadCount(userId) {
     return NotificationRepository.countUnread(userId);
   }
-  // Add this inside your NotificationsService class
-async supervisorAssignedToStudent(studentId, adminName) {
-    await this.createNotification({
-        recipient: studentId,
-        message: `Success! ${adminName} has been assigned as your supervisor. You can now access your project.`,
-        type: "assignment"
-    });
-}
 }
 
 module.exports = new NotificationsService();

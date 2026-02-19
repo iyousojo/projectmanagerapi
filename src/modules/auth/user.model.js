@@ -13,14 +13,16 @@ const userSchema = new mongoose.Schema({
   },
   phone: { type: String, required: true },
   
-  // ✅ NEW FIELDS ADDED
   gender: { 
     type: String, 
     enum: ["Male", "Female", "Other"], 
-    required: false // Set to true if you want to force this selection
+    required: false 
   },
   faculty: { type: String, required: false },
   department: { type: String, required: false },
+
+  // ✅ ADD THIS: Store the device token for notifications
+  expoPushToken: { type: String, default: null },
 
   profilePic: String,
   isAuthorized: { type: Boolean, default: false },
@@ -56,15 +58,20 @@ userSchema.methods.generateEmailToken = function () {
   return token;
 };
 
+// Updated Reset Token Method for Mobile Deep Linking
 userSchema.methods.generateResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
+  
+  // We store the hashed version for security
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
 
   this.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 mins
-  return resetToken;
+  
+  // Return the unhashed token to be sent in the projectmanager:// URL
+  return resetToken; 
 };
 
 module.exports = mongoose.model("User", userSchema);
