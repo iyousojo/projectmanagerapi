@@ -3,8 +3,12 @@ const AuthService = require("./auth.service");
 class AuthController {
   register = async (req, res) => {
     try {
+      // Pass the whole body (name, email, password, faculty, department, phone, etc.)
       await AuthService.register(req.body);
-      return res.status(201).json({ status: "success", message: "Check email." });
+      return res.status(201).json({ 
+        status: "success", 
+        message: "Verification code sent to your email." 
+      });
     } catch (err) {
       return res.status(400).json({ status: "error", message: err.message });
     }
@@ -21,9 +25,15 @@ class AuthController {
 
   verifyEmail = async (req, res) => {
     try {
-      const token = req.body.token || req.params.token;
-      await AuthService.verifyEmail(token);
-      return res.json({ status: "success", message: "Verified!" });
+      // Get both email and token from the request
+      const { email, token } = req.body; 
+      
+      if (!email || !token) {
+        throw new Error("Email and verification token are required.");
+      }
+
+      await AuthService.verifyEmail(email, token);
+      return res.json({ status: "success", message: "Email verified successfully!" });
     } catch (err) {
       return res.status(400).json({ status: "error", message: err.message });
     }
@@ -48,5 +58,4 @@ class AuthController {
   };
 }
 
-// ✅ CRITICAL: You MUST use 'new' and it MUST be at the bottom
 module.exports = new AuthController();

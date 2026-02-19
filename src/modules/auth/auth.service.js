@@ -24,16 +24,20 @@ class AuthService {
     };
 
     const user = await AuthRepository.createUser(userData);
-    const token = user.generateEmailToken();
+    const token = user.generateEmailToken(); // Ensure this generates a 6-digit code in User model
     await AuthRepository.update(user);
 
     await EmailService.sendVerificationEmail(user.email, token);
     return user;
   }
 
-  async verifyEmail(token) {
-    const user = await AuthRepository.findByEmailToken(token);
-    if (!user) throw new Error("Invalid or expired verification token.");
+  // ✅ UPDATED: Accepts email and token for precision
+  async verifyEmail(email, token) {
+    const user = await AuthRepository.findByEmail(email);
+    
+    if (!user) throw new Error("User not found.");
+    if (user.emailVerified) throw new Error("Email already verified.");
+    if (user.emailVerificationToken !== token) throw new Error("Invalid or expired code.");
 
     user.emailVerified = true;
     user.emailVerificationToken = undefined;
@@ -62,7 +66,6 @@ class AuthService {
     const user = await AuthRepository.findByEmail(email);
     if (!user) throw new Error("User not found.");
 
-    // ✅ This will now work because generateResetToken is in the model
     const token = user.generateResetToken();
     await AuthRepository.update(user);
 
@@ -71,11 +74,10 @@ class AuthService {
   }
 
   async resetPassword(token, newPassword) {
-    // Note: ensure your repository hashes the token to find it if you stored the hash
     const user = await AuthRepository.findByResetToken(token);
     if (!user) throw new Error("Invalid or expired reset token.");
 
-    user.password = newPassword; // Pre-save hook will hash this
+    user.password = newPassword; 
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await AuthRepository.update(user);
