@@ -1,9 +1,8 @@
-// auth.routes.js
 const express = require("express");
 const router = express.Router();
 const AuthController = require("./auth.controller"); 
 
-// Use arrow functions to ensure arguments (req, res, next) are passed correctly
+// ✅ Wrap calls in (req, res, next) to ensure arguments are passed correctly
 router.post("/register", (req, res, next) => AuthController.register(req, res, next));
 router.post("/login", (req, res, next) => AuthController.login(req, res, next));
 router.post("/verify-email", (req, res, next) => AuthController.verifyEmail(req, res, next));
