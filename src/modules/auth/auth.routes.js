@@ -1,15 +1,13 @@
+// auth.routes.js
 const express = require("express");
 const router = express.Router();
 const AuthController = require("./auth.controller"); 
 
-// Debugging: This will print if the controller loaded correctly
-// If this logs "undefined", the issue is in your controller's module.exports
-console.log("AuthController loaded:", !!AuthController);
-
-router.post("/register", AuthController.register);
-router.post("/login", AuthController.login);
-router.post("/verify-email", AuthController.verifyEmail);
-router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
+// Use arrow functions to ensure arguments (req, res, next) are passed correctly
+router.post("/register", (req, res, next) => AuthController.register(req, res, next));
+router.post("/login", (req, res, next) => AuthController.login(req, res, next));
+router.post("/verify-email", (req, res, next) => AuthController.verifyEmail(req, res, next));
+router.post("/forgot-password", (req, res, next) => AuthController.forgotPassword(req, res, next));
+router.post("/reset-password", (req, res, next) => AuthController.resetPassword(req, res, next));
 
 module.exports = router;
