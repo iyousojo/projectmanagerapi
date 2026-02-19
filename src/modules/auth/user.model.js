@@ -12,40 +12,37 @@ const userSchema = new mongoose.Schema({
     default: "student" 
   },
   phone: { type: String, required: true },
-  
-  gender: { 
-    type: String, 
-    enum: ["Male", "Female", "Other"], 
-    required: false 
-  },
+  gender: { type: String, enum: ["Male", "Female", "Other"], required: false },
   faculty: { type: String, required: false },
   department: { type: String, required: false },
-
-  // ✅ ADD THIS: Store the device token for notifications
   expoPushToken: { type: String, default: null },
-
-  profilePic: String,
+  profilePic: { type: String, default: "" },
   isAuthorized: { type: Boolean, default: false },
   emailVerified: { type: Boolean, default: false },
-  emailVerificationToken: String,
+  emailVerificationToken: { type: String },
   assignedSupervisor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   projectInfo: {
     currentPhase: { type: String, default: "Not Started" },
     daysRemaining: { type: Number, default: 0 },
-    projectDescription: String
+    projectDescription: { type: String, default: "" }
   },
   resetPasswordToken: String,
   resetPasswordExpires: Date
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  validateBeforeSave: true 
+});
 
-// --- Middleware & Methods ---
+// ✅ CORRECT: No 'next' parameter for async functions in modern Mongoose
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
 
-// Hash password before saving
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  } catch (error) {
+    throw error;
+  }
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
@@ -53,24 +50,18 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 userSchema.methods.generateEmailToken = function () {
-  const token = crypto.randomBytes(20).toString("hex");
+  const token = Math.floor(100000 + Math.random() * 900000).toString();
   this.emailVerificationToken = token;
   return token;
 };
 
-// Updated Reset Token Method for Mobile Deep Linking
 userSchema.methods.generateResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
-  
-  // We store the hashed version for security
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-
-  this.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 mins
-  
-  // Return the unhashed token to be sent in the projectmanager:// URL
+  this.resetPasswordExpires = Date.now() + 30 * 60 * 1000; 
   return resetToken; 
 };
 

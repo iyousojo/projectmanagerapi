@@ -1,57 +1,49 @@
 const AuthService = require("./auth.service");
 
 class AuthController {
-  // ✅ Use arrow functions to preserve 'this' and handle 'next' correctly
   register = async (req, res, next) => {
     try {
       await AuthService.register(req.body);
-      return res.status(201).json({ 
-        status: "success", 
-        message: "Verification code sent to your email." 
-      });
-    } catch (err) {
-      next(err); // Pass error to your global error handler in app.js
+      res.status(201).json({ status: "success", message: "Verification email sent!" });
+    } catch (err) { 
+      next(err); 
     }
   };
 
   login = async (req, res, next) => {
     try {
-      const { user, token } = await AuthService.login(req.body.email, req.body.password);
-      return res.json({ status: "success", user, token });
-    } catch (err) {
-      next(err);
+      const data = await AuthService.login(req.body.email, req.body.password);
+      res.json({ status: "success", ...data });
+    } catch (err) { 
+      next(err); 
     }
   };
 
   verifyEmail = async (req, res, next) => {
     try {
-      const { email, token } = req.body; 
-      if (!email || !token) throw new Error("Email and token are required.");
-
-      await AuthService.verifyEmail(email, token);
-      return res.json({ status: "success", message: "Email verified successfully!" });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  forgotPassword = async (req, res, next) => {
-    try {
-      await AuthService.forgotPassword(req.body.email);
-      return res.json({ status: "success", message: "Reset link sent." });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  resetPassword = async (req, res, next) => {
-    try {
-      await AuthService.resetPassword(req.body.token, req.body.password);
-      return res.json({ status: "success", message: "Password updated." });
-    } catch (err) {
-      next(err);
+      await AuthService.verifyEmail(req.body.email, req.body.token);
+      res.json({ status: "success", message: "Email verified successfully!" });
+    } catch (err) { 
+      next(err); 
     }
   };
 }
+// Inside AuthController class
+forgotPassword = async (req, res, next) => {
+  try {
+    await AuthService.forgotPassword(req.body.email);
+    res.json({ status: "success", message: "Password reset link sent to email." });
+  } catch (err) {
+    next(err);
+  }
+};
 
+resetPassword = async (req, res, next) => {
+  try {
+    await AuthService.resetPassword(req.body.token, req.body.password);
+    res.json({ status: "success", message: "Password updated successfully!" });
+  } catch (err) {
+    next(err);
+  }
+};
 module.exports = new AuthController();

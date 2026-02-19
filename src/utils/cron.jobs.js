@@ -18,3 +18,9 @@ cron.schedule("0 9 * * *", async () => {
     await NotificationsService.deadlineReminder(project);
   }
 });
+console.log("DEBUG ENV:", {
+  user: process.env.GMAIL_FROM,
+  clientId: process.env.GMAIL_CLIENT_ID ? "Exists" : "MISSING",
+  clientSecret: process.env.GMAIL_CLIENT_SECRET ? "Exists" : "MISSING",
+  refreshToken: process.env.GMAIL_REFRESH_TOKEN ? "Exists" : "MISSING",
+});

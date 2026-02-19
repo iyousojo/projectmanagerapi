@@ -2,16 +2,23 @@ const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const http = require("http");
+const cors = require("cors"); // Added CORS
 const { Server } = require("socket.io");
 
 dotenv.config();
 
 const app = express();
+
+// --- MIDDLEWARE ---
+// Critical: CORS must be configured so your Netlify bridge can call your API
+app.use(cors({
+  origin: "*", // For production, replace "*" with your Netlify URL
+  methods: ["GET", "POST"]
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- DEBUGGING LOGS ---
-// This will tell us if any route file is exporting something broken
 const authRoutes = require("./modules/auth/auth.routes");
 const usersRoutes = require("./modules/users/users.routes");
 const chatRoutes = require("./modules/chat/chat.routes");
@@ -20,13 +27,12 @@ const taskRoutes = require("./modules/task/task.routes");
 const notificationRoutes = require("./modules/notifications/notification.routes");
 
 console.log("Checking Routers...");
-console.log("Auth Router loaded:", typeof authRoutes === 'function' || typeof authRoutes?.stack === 'object');
-console.log("Users Router loaded:", typeof usersRoutes === 'function' || typeof usersRoutes?.stack === 'object');
+console.log("Auth Router loaded:", typeof authRoutes === 'function' || !!authRoutes?.stack);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected ✅"))
-  .catch(err => console.log("MongoDB Connection Error:", err));
+  .catch(err => console.error("MongoDB Connection Error:", err));
 
 // --- ROUTES ---
 app.use("/api/auth", authRoutes);
@@ -38,10 +44,10 @@ app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req, res) => res.send("API is running..."));
 
-// Error handling middleware to catch the 'next' error before it crashes the app
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("Global Error Handler:", err.stack);
-  res.status(500).json({ status: "error", message: err.message });
+  console.error("Global Error Handler:", err.message);
+  res.status(err.status || 500).json({ status: "error", message: err.message });
 });
 
 const server = http.createServer(app);
