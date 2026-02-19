@@ -1,57 +1,32 @@
-const User = require("../auth/user.model");
+const UsersRepository = require("./users.repository");
 
 class UsersService {
   async getProfile(userId) {
-    const user = await User.findById(userId).select("-password");
-    if (!user) throw new Error("User profile not found in database");
-    return user;
+    return await UsersRepository.findById(userId);
   }
 
   async getFilteredStudents(status, supervisorId) {
-    let query = { role: "student" };
-
-    // If an Admin is logged in, only show their students
+    // If supervisorId exists, the controller has identified the user as an 'admin'
     if (supervisorId) {
-      query.assignedSupervisor = supervisorId;
-    } 
-
-    // Filter by status (unassigned/assigned) for Super-Admins
-    if (status === "unassigned") {
-      query.assignedSupervisor = { $exists: false };
-    } else if (status === "assigned") {
-      query.assignedSupervisor = { $exists: true, $ne: null };
+      return await UsersRepository.getStudentsByAdmin(supervisorId, status);
+    } else {
+      // Otherwise, it's a super-admin requesting the full list
+      return await UsersRepository.getStudentsByStatus(status);
     }
-
-    return await User.find(query)
-      .select("-password")
-      .populate("assignedSupervisor", "fullName email")
-      .sort({ createdAt: -1 });
   }
 
   async getAllAdmins() {
-    return await User.find({ role: "admin" }).select("fullName email isAuthorized");
+    return await UsersRepository.getAdminsWithTheirStudents();
   }
 
   async authorizeStudent(studentId, supervisorId) {
-    return await User.findByIdAndUpdate(
-      studentId,
-      { 
-        isAuthorized: true, 
-        assignedSupervisor: supervisorId 
-      },
-      { new: true }
-    ).select("-password");
+    return await UsersRepository.authorizeStudent(studentId, supervisorId);
   }
 
   async getSuperAdminStats() {
-    const totalStudents = await User.countDocuments({ role: "student" });
-    const totalAdmins = await User.countDocuments({ role: "admin" });
-    const unassigned = await User.countDocuments({ role: "student", assignedSupervisor: { $exists: false } });
-
+    const admins = await UsersRepository.getAdminsWithTheirStudents();
     return {
-      totalStudents,
-      totalAdmins,
-      unassignedStudents: unassigned
+      totalAdmins: admins.length,
     };
   }
 }

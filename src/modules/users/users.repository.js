@@ -13,13 +13,29 @@ class UsersRepository {
     return await userInstance.save();
   }
 
+  // ✅ ADDED: Admin-specific student fetch
+  // This resolves the crash happening in the Service layer
+  async getStudentsByAdmin(supervisorId, status) {
+    const query = { 
+      role: "student", 
+      assignedSupervisor: supervisorId 
+    };
+    
+    // If a specific status (assigned/unassigned) is passed
+    if (status === "assigned") {
+      query.assignedSupervisor = { $exists: true, $ne: null };
+    }
+    
+    return await User.find(query).select("-password");
+  }
+
   // ✅ SUPERADMIN: List Admins + their students
   async getAdminsWithTheirStudents() {
     return await User.aggregate([
       { $match: { role: "admin" } },
       {
         $lookup: {
-          from: "users", // Matches the collection name
+          from: "users", 
           localField: "_id",
           foreignField: "assignedSupervisor",
           as: "supervisedStudents"
@@ -37,7 +53,9 @@ class UsersRepository {
     } else if (status === "unassigned") {
       query.$or = [{ assignedSupervisor: { $exists: false } }, { assignedSupervisor: null }];
     }
-    return await User.find(query).select("-password").populate("assignedSupervisor", "fullName email");
+    return await User.find(query)
+      .select("-password")
+      .populate("assignedSupervisor", "fullName email");
   }
 
   async updateProfile(id, data) {
