@@ -12,7 +12,7 @@ const projectSchema = new mongoose.Schema({
   supervisor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   // ✅ NEW: The designated leader for group projects
   projectHead: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
-  status: { type: String, enum: ["Pending", "Active", "Completed"], default: "Pending" }
+  status: { type: String, enum: ["Pending", "Proposal", "Implementation", "Testing", "Completed"], default: "Pending" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Project", projectSchema);
