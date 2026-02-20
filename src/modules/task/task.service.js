@@ -3,16 +3,31 @@ const Project = require("../project/project.model");
 
 class TaskService {
   // ✅ ADDED: Get tasks by User ID (Fixes the 404/Service crash)
-  async getTasksByUser(userId) {
-    // This calls the repository to find tasks assigned to the student
+async getTasksByUser(userId) {
     return await TaskRepository.findByUser(userId);
   }
 
   async createTask(data, adminId) {
+    // 1. Find the project this student belongs to
+    // We search the 'Project' collection for any project where this student is the head or a member
+    const studentProject = await Project.findOne({
+      $or: [
+        { projectHead: data.assignedTo },
+        { members: data.assignedTo }
+      ]
+    });
+
+    // If no project is found, we can't create a task because 'project' is required in the Task Model
+    if (!studentProject) {
+      throw new Error("Validation Failed: Student must belong to a project before receiving tasks.");
+    }
+
+    // 2. Create the task with the found Project ID
     return await TaskRepository.create({ 
       ...data, 
+      project: studentProject._id, // ✅ This satisfies the 'required' field in your Schema
       createdBy: adminId,
-      status: "Pending" // Ensure default status
+      status: "Pending"
     });
   }
 
