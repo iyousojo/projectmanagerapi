@@ -5,33 +5,36 @@ class UsersRepository {
   async findById(id) {
     return await User.findById(id).select("-password");
   }
-
-  async getStudentsByAdmin(supervisorId) {
-    try {
-      // Ensure we have a valid ObjectId
-      const adminId = new mongoose.Types.ObjectId(supervisorId);
-      
-      const students = await User.find({ 
-        role: "student", 
-        assignedSupervisor: adminId 
-      })
-      .select("-password")
-      .sort({ fullName: 1 });
-
-      // LOGGING FOR LOCALHOST TESTING
-      console.log("-----------------------------------------");
-      console.log(`Admin ID: ${supervisorId}`);
-      console.log(`Querying for assignedSupervisor: ${adminId}`);
-      console.log(`Results Found: ${students.length}`);
-      console.log("-----------------------------------------");
-
-      return students;
-    } catch (error) {
-      console.error("Repository Error:", error.message);
+async getStudentsByAdmin(supervisorId) {
+  try {
+    // 1. Validate if it's a valid ID string before converting
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      console.log("❌ Invalid Supervisor ID format received");
       return [];
     }
-  }
 
+    // 2. Convert string to the Object type MongoDB expects
+    const adminObjectId = new mongoose.Types.ObjectId(supervisorId);
+    
+    // 3. Query using the converted Object
+    const students = await User.find({ 
+      role: "student", 
+      assignedSupervisor: adminObjectId 
+    })
+    .select("-password")
+    .sort({ fullName: 1 });
+
+    console.log(`-----------------------------------------`);
+    console.log(`📱 Handshake: Admin ${supervisorId} requested students.`);
+    console.log(`📊 Result: Found ${students.length} students in DB.`);
+    console.log(`-----------------------------------------`);
+
+    return students;
+  } catch (error) {
+    console.error("Repository Error:", error.message);
+    return [];
+  }
+}
   async getUnassignedStudents() {
     return await User.find({
       role: "student",
@@ -43,13 +46,18 @@ class UsersRepository {
   }
 
   async authorizeStudent(id, supervisorId) {
-    const adminId = new mongoose.Types.ObjectId(supervisorId);
-    return await User.findByIdAndUpdate(
-      id,
-      { isAuthorized: true, assignedSupervisor: adminId },
-      { new: true }
-    ).select("-password");
-  }
+  // Always convert to ObjectId before saving to ensure it stays an "Object" in DB
+  const adminId = new mongoose.Types.ObjectId(supervisorId);
+  
+  return await User.findByIdAndUpdate(
+    id,
+    { 
+      isAuthorized: true, 
+      assignedSupervisor: adminId // This saves it as an Object, not a String
+    },
+    { new: true }
+  ).select("-password");
+}
 
   async getAdminsWithTheirStudents() {
     return await User.aggregate([
