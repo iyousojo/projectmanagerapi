@@ -40,4 +40,10 @@ router.delete(
     ProjectController.deleteProject
 );
 
+router.post(
+    "/:id/tasks", 
+    roleMiddleware(["student", "admin"]), 
+    ProjectController.addTask
+);
+
 module.exports = router;
