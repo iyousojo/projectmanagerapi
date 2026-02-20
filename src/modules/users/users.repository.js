@@ -13,23 +13,17 @@ class UsersRepository {
     return await userInstance.save();
   }
 
-  // ✅ ADDED: Admin-specific student fetch
-  // This resolves the crash happening in the Service layer
+  // ✅ ADMIN: Fetch students assigned to them
   async getStudentsByAdmin(supervisorId, status) {
     const query = { 
       role: "student", 
       assignedSupervisor: supervisorId 
     };
-    
-    // If a specific status (assigned/unassigned) is passed
-    if (status === "assigned") {
-      query.assignedSupervisor = { $exists: true, $ne: null };
-    }
-    
+    if (status) query.status = status;
     return await User.find(query).select("-password");
   }
 
-  // ✅ SUPERADMIN: List Admins + their students
+  // ✅ SUPERADMIN: List Admins + count of their students
   async getAdminsWithTheirStudents() {
     return await User.aggregate([
       { $match: { role: "admin" } },
@@ -41,11 +35,17 @@ class UsersRepository {
           as: "supervisedStudents"
         }
       },
+      {
+        $addFields: {
+          // Adds studentCount field for your mobile UI badges
+          studentCount: { $size: "$supervisedStudents" }
+        }
+      },
       { $project: { password: 0, "supervisedStudents.password": 0 } }
     ]);
   }
 
-  // ✅ SUPERADMIN: Filter students by assignment
+  // ✅ SUPERADMIN: Generic Filter
   async getStudentsByStatus(status) {
     const query = { role: "student" };
     if (status === "assigned") {
@@ -56,6 +56,11 @@ class UsersRepository {
     return await User.find(query)
       .select("-password")
       .populate("assignedSupervisor", "fullName email");
+  }
+
+  // ✅ FIX: Specific method the Service is calling to avoid "not a function" error
+  async getUnassignedStudents() {
+    return await this.getStudentsByStatus("unassigned");
   }
 
   async updateProfile(id, data) {
