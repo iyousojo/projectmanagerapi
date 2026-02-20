@@ -17,11 +17,12 @@ class ProjectService {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
-    // Security Logic: Ensure the user is either the supervisor or a member
     const isMember = project.members.some(m => m._id.toString() === userId.toString());
     const isSupervisor = project.supervisor._id.toString() === userId.toString();
+    const isSuperAdmin = role === "super-admin";
 
-    if (role !== "super-admin" && !isMember && !isSupervisor) {
+    // Super-Admin can view, but only Members/Supervisors have standard access
+    if (!isSuperAdmin && !isMember && !isSupervisor) {
       throw new Error("Unauthorized access to this project");
     }
 
@@ -30,18 +31,17 @@ class ProjectService {
 
   /**
    * ✅ Update Project Service
-   * Logic: Only the supervisor or a super-admin can change project state
+   * STRICT LOGIC: Only the specifically assigned Admin (Supervisor) can modify.
    */
   async updateProject(projectId, updateData, userId) {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
-    // Authorization Check
+    // Check if the person trying to update is the assigned supervisor
     const isSupervisor = project.supervisor._id.toString() === userId.toString();
-    const isSuperAdmin = false; // Add your logic if you have a specific super-admin check
 
-    if (!isSupervisor && !isSuperAdmin) {
-      throw new Error("Only the assigned supervisor can modify this project state.");
+    if (!isSupervisor) {
+      throw new Error("Access Denied: Only the assigned Supervisor can modify this project state.");
     }
 
     return await ProjectRepository.update(projectId, updateData);
@@ -49,7 +49,7 @@ class ProjectService {
 
   /**
    * ✅ Delete Project Service
-   * Logic: Prevent accidental deletions by ensuring supervisor authorization
+   * STRICT LOGIC: Only the assigned Supervisor can delete.
    */
   async deleteProject(projectId, userId) {
     const project = await ProjectRepository.findById(projectId);
@@ -58,7 +58,7 @@ class ProjectService {
     const isSupervisor = project.supervisor._id.toString() === userId.toString();
 
     if (!isSupervisor) {
-      throw new Error("Unauthorized: Only the supervisor can delete this project.");
+      throw new Error("Unauthorized: Only the assigned Supervisor can delete this project.");
     }
 
     return await ProjectRepository.delete(projectId);

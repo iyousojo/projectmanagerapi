@@ -69,7 +69,7 @@ class ProjectController {
       const { id } = req.params;
       const updateData = req.body;
 
-      // Passing req.user._id to ensure only the supervisor of THIS project can edit it
+      // Logic: Service will check if req.user._id matches project.supervisor
       const updatedProject = await ProjectService.updateProject(id, updateData, req.user._id);
       
       res.json({ 
@@ -78,13 +78,12 @@ class ProjectController {
         project: updatedProject 
       });
     } catch (err) {
-      res.status(400).json({ status: "error", message: err.message });
+      res.status(403).json({ status: "error", message: err.message });
     }
   };
 
   /**
    * ✅ Delete Project
-   * Permanently removes the project record.
    */
   deleteProject = async (req, res) => {
     try {
@@ -97,7 +96,7 @@ class ProjectController {
         message: "Project deleted permanently" 
       });
     } catch (err) {
-      res.status(400).json({ status: "error", message: err.message });
+      res.status(403).json({ status: "error", message: err.message });
     }
   };
 }
