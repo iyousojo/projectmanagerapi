@@ -7,29 +7,28 @@ class TaskService {
   }
 
   async createTask(data, adminId) {
-    // ✅ MOVE THE IMPORT HERE to break the circular dependency loop
-    const Project = require("../project/project.model"); 
+    // ✅ LAZY LOAD: Import inside the function to avoid "not defined" or circular errors
+    const Project = require("../project/project.model");
 
-    // 1. Find the project this student belongs to
-    const studentProject = await Project.findOne({
-      $or: [
-        { projectHead: data.assignedTo },
-        { members: data.assignedTo }
-      ]
-    });
+    let projectId = data.project;
 
-    if (!studentProject) {
-      throw new Error("Validation Failed: Student must belong to a project before receiving tasks.");
+    if (!projectId) {
+      const activeProject = await Project.findOne({ 
+        $or: [
+          { projectHead: data.assignedTo },
+          { members: data.assignedTo }
+        ]
+      });
+
+      if (!activeProject) {
+        throw new Error("This student is not linked to any project. Create a project first!");
+      }
+      projectId = activeProject._id;
     }
 
-    // 2. Map data correctly to satisfy your Schema
-    // Your frontend uses 'deadline', but your schema might use 'dueDate'
     return await TaskRepository.create({ 
-      title: data.title,
-      description: data.description,
-      dueDate: data.deadline || data.dueDate, 
-      assignedTo: data.assignedTo,
-      project: studentProject._id, 
+      ...data, 
+      project: projectId, 
       createdBy: adminId,
       status: "Pending"
     });
