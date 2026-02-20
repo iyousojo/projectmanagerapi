@@ -1,4 +1,5 @@
 const User = require("../auth/user.model");
+const mongoose = require("mongoose");
 
 class UsersRepository {
   async findById(id) {
@@ -13,14 +14,23 @@ class UsersRepository {
     return await userInstance.save();
   }
 
-  // ✅ ADMIN: Fetch students assigned to them
-  async getStudentsByAdmin(supervisorId, status) {
-    const query = { 
-      role: "student", 
-      assignedSupervisor: supervisorId 
-    };
-    if (status) query.status = status;
-    return await User.find(query).select("-password");
+  // ✅ ADMIN FIX: Remove the non-existent 'status' field query
+  async getStudentsByAdmin(supervisorId) {
+    try {
+      // Ensure we are querying by the correct field: 'assignedSupervisor'
+      const query = { 
+        role: "student", 
+        assignedSupervisor: supervisorId 
+      };
+
+      // console.log("Admin Querying for:", query); // Use this to debug the ID
+      
+      return await User.find(query)
+        .select("-password")
+        .sort({ fullName: 1 }); // Sorted alphabetically
+    } catch (error) {
+      throw new Error("Repository Error: " + error.message);
+    }
   }
 
   // ✅ SUPERADMIN: List Admins + count of their students
@@ -37,7 +47,6 @@ class UsersRepository {
       },
       {
         $addFields: {
-          // Adds studentCount field for your mobile UI badges
           studentCount: { $size: "$supervisedStudents" }
         }
       },
@@ -58,7 +67,6 @@ class UsersRepository {
       .populate("assignedSupervisor", "fullName email");
   }
 
-  // ✅ FIX: Specific method the Service is calling to avoid "not a function" error
   async getUnassignedStudents() {
     return await this.getStudentsByStatus("unassigned");
   }
@@ -67,6 +75,7 @@ class UsersRepository {
     return await User.findByIdAndUpdate(id, { $set: data }, { new: true }).select("-password");
   }
 
+  // ✅ Ensure this field matches your SCHEMA: assignedSupervisor
   async authorizeStudent(id, supervisorId) {
     return await User.findByIdAndUpdate(
       id,
