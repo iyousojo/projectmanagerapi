@@ -64,6 +64,18 @@ class AuthController {
       next(err);
     }
   };
+
+  getProfile = async (req, res, next) => {
+    try {
+      // req.user.id is populated by your authenticate middleware
+      const userId = req.user.id; 
+      const user = await AuthService.getUserProfile(userId);
+      
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  };
 }
 
 module.exports = new AuthController();
