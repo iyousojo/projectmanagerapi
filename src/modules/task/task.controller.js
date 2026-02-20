@@ -1,6 +1,16 @@
 const TaskService = require("./task.service");
 
 class TaskController {
+  // ✅ ADDED: Handle fetching tasks by User ID
+  getUserTasks = async (req, res) => {
+    try {
+      const tasks = await TaskService.getTasksByUser(req.params.userId);
+      res.json(tasks); // Returning array directly to match your frontend .filter() logic
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
+    }
+  };
+
   createTask = async (req, res) => {
     try {
       const task = await TaskService.createTask(req.body, req.user._id);
@@ -10,7 +20,6 @@ class TaskController {
     }
   };
 
-  // ✅ ADDED: List tasks for a specific project
   getProjectTasks = async (req, res) => {
     try {
       const tasks = await TaskService.getTasksByProject(req.params.projectId);
