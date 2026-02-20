@@ -63,6 +63,24 @@ class ProjectService {
 
     return await ProjectRepository.delete(projectId);
   }
-}
+  
 
+
+async addTask(projectId, taskData) {
+  // We use findByIdAndUpdate with $push to add to the tasks array
+  return await Project.findByIdAndUpdate(
+    projectId,
+    { 
+      $push: { 
+        tasks: { 
+          title: taskData.title, 
+          description: taskData.description,
+          createdAt: new Date() 
+        } 
+      } 
+    },
+    { new: true }
+  );
+}
+}
 module.exports = new ProjectService();
