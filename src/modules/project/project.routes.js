@@ -6,13 +6,29 @@ const { protect, roleMiddleware } = require("../auth/auth.middleware");
 // 1. All project routes require a logged-in user
 router.use(protect); 
 
-// 2. Create a project (Logic: Students or Admins only)
+// 2. Create a project
 router.post("/", roleMiddleware(["student", "admin"]), ProjectController.createProject);
 
-// 3. List projects (Logic: Returns supervised projects for Admins, joined projects for Students)
+// 3. List projects
 router.get("/", ProjectController.listProjects);
 
-// 4. Get specific project details (Logic: Includes security check in the service)
+// 4. Get specific project details
 router.get("/:id", ProjectController.getProjectDetails);
+
+// --- ADMIN TOTAL CONTROL ROUTES ---
+
+// 5. Update Project State (Status, Phase, Deadline, Description)
+router.patch(
+    "/:id", 
+    roleMiddleware(["admin", ]), 
+    ProjectController.updateProject
+);
+
+// 6. Delete Project
+router.delete(
+    "/:id", 
+    roleMiddleware(["admin"]), 
+    ProjectController.deleteProject
+);
 
 module.exports = router;

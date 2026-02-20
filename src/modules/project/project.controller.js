@@ -16,7 +16,6 @@ class ProjectController {
         
         supervisorId = studentProfile.assignedSupervisor;
       } else {
-        // Admins/Super-admins are their own supervisors
         supervisorId = req.user._id;
       }
 
@@ -24,11 +23,9 @@ class ProjectController {
         title,
         description,
         projectType,
-        // Ensure student is always a member of their own project
         members: req.user.role === "student" ? [...new Set([...members, req.user._id.toString()])] : members,
         supervisor: supervisorId,
-        // ✅ LOGIC: Assign head if provided, otherwise default to first member
-         projectHead: req.body.projectHead || members[0]
+        projectHead: req.body.projectHead || (members.length > 0 ? members[0] : req.user._id)
       };
 
       const project = await ProjectService.createProject(projectData);
@@ -41,7 +38,6 @@ class ProjectController {
   listProjects = async (req, res) => {
     try {
       let projects;
-      // Admins see projects they supervise; Students see projects they are members of
       if (req.user.role === "admin" || req.user.role === "super-admin") {
         projects = await ProjectService.getProjectsBySupervisor(req.user._id);
       } else {
@@ -59,6 +55,49 @@ class ProjectController {
       res.json({ status: "success", project });
     } catch (err) {
       res.status(404).json({ status: "error", message: err.message });
+    }
+  };
+
+  // --- NEW: ADMIN TOTAL CONTROL METHODS ---
+
+  /**
+   * ✅ Update Project (Phase, Status, Deadline, etc.)
+   * Used by Admins to manage the project lifecycle.
+   */
+  updateProject = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Passing req.user._id to ensure only the supervisor of THIS project can edit it
+      const updatedProject = await ProjectService.updateProject(id, updateData, req.user._id);
+      
+      res.json({ 
+        status: "success", 
+        message: "Project state updated successfully", 
+        project: updatedProject 
+      });
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
+    }
+  };
+
+  /**
+   * ✅ Delete Project
+   * Permanently removes the project record.
+   */
+  deleteProject = async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      await ProjectService.deleteProject(id, req.user._id);
+      
+      res.json({ 
+        status: "success", 
+        message: "Project deleted permanently" 
+      });
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
     }
   };
 }

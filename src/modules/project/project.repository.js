@@ -1,4 +1,5 @@
 const Project = require("./project.model");
+const mongoose = require("mongoose");
 
 class ProjectRepository {
   async create(data) {
@@ -6,18 +7,63 @@ class ProjectRepository {
   }
 
   async findBySupervisor(supervisorId) {
-    return await Project.find({ supervisor: supervisorId }).populate("members", "fullName email");
+    // Ensuring supervisorId is a valid ObjectId for the handshake
+    const adminId = new mongoose.Types.ObjectId(supervisorId);
+    return await Project.find({ supervisor: adminId })
+      .populate("members", "fullName email")
+      .populate("projectHead", "fullName email")
+      .sort({ createdAt: -1 });
   }
 
   async findByMember(userId) {
-    return await Project.find({ members: userId }).populate("supervisor", "fullName email");
+    const memberId = new mongoose.Types.ObjectId(userId);
+    return await Project.find({ members: memberId })
+      .populate("supervisor", "fullName email")
+      .populate("projectHead", "fullName email")
+      .sort({ createdAt: -1 });
   }
 
   async findById(id) {
-    return await Project.findById(id).populate("members supervisor", "fullName email")
-    .populate("members", "fullName email profilePic")
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    
+    return await Project.findById(id)
+      .populate("members", "fullName email profilePic")
+      .populate("projectHead", "fullName email")
+      .populate("supervisor", "fullName email");
+  }
+
+  /**
+   * ADMIN TOTAL CONTROL: Update State
+   * Allows changing status (e.g., 'active' to 'completed'), 
+   * phases, deadlines, or project details.
+   */
+  async update(id, updateData) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid Project ID");
+
+    return await Project.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    )
+    .populate("members", "fullName email")
     .populate("projectHead", "fullName email")
     .populate("supervisor", "fullName email");
+  }
+
+  /**
+   * ADMIN TOTAL CONTROL: Delete Project
+   * Permanently removes the project from the records.
+   */
+  async delete(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) throw new Error("Invalid Project ID");
+    return await Project.findByIdAndDelete(id);
+  }
+
+  /**
+   * PHASE MANAGEMENT: Helper to quickly advance project status
+   */
+  async updateStatus(id, newStatus) {
+    return await this.update(id, { status: newStatus });
   }
 }
 
