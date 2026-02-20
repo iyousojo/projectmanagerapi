@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const User = require("./user.model");
 const AuthController = require("./auth.controller");
 const { protect } = require("./auth.middleware");// Adjust path if needed
 
