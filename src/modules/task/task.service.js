@@ -1,15 +1,16 @@
 const TaskRepository = require("./task.repository");
-const Project = require("../project/project.model");
+// ❌ DELETE this line from here: const Project = require("../project/project.model");
 
 class TaskService {
-  // ✅ ADDED: Get tasks by User ID (Fixes the 404/Service crash)
-async getTasksByUser(userId) {
+  async getTasksByUser(userId) {
     return await TaskRepository.findByUser(userId);
   }
 
   async createTask(data, adminId) {
+    // ✅ MOVE THE IMPORT HERE to break the circular dependency loop
+    const Project = require("../project/project.model"); 
+
     // 1. Find the project this student belongs to
-    // We search the 'Project' collection for any project where this student is the head or a member
     const studentProject = await Project.findOne({
       $or: [
         { projectHead: data.assignedTo },
@@ -17,15 +18,18 @@ async getTasksByUser(userId) {
       ]
     });
 
-    // If no project is found, we can't create a task because 'project' is required in the Task Model
     if (!studentProject) {
       throw new Error("Validation Failed: Student must belong to a project before receiving tasks.");
     }
 
-    // 2. Create the task with the found Project ID
+    // 2. Map data correctly to satisfy your Schema
+    // Your frontend uses 'deadline', but your schema might use 'dueDate'
     return await TaskRepository.create({ 
-      ...data, 
-      project: studentProject._id, // ✅ This satisfies the 'required' field in your Schema
+      title: data.title,
+      description: data.description,
+      dueDate: data.deadline || data.dueDate, 
+      assignedTo: data.assignedTo,
+      project: studentProject._id, 
       createdBy: adminId,
       status: "Pending"
     });
@@ -38,8 +42,10 @@ async getTasksByUser(userId) {
   async submitTask(taskId, studentId) {
     const task = await TaskRepository.findById(taskId);
     if (!task) throw new Error("Task not found");
+    
+    // ✅ Keep the internal import here too if needed
+    const Project = require("../project/project.model");
 
-    // If the task is linked to a project, enforce group rules
     if (task.project) {
       const project = await Project.findById(task.project);
       if (project && project.projectType === "Group") {
@@ -49,8 +55,6 @@ async getTasksByUser(userId) {
       }
     }
 
-    // Default check: Ensure the student submitting is the one assigned
-    // We check task.assignedTo (handling both populated and unpopulated ID)
     const assignedId = task.assignedTo?._id || task.assignedTo;
     if (assignedId?.toString() !== studentId.toString()) {
       throw new Error("You are not assigned to this task.");
@@ -62,7 +66,6 @@ async getTasksByUser(userId) {
   async approveTask(taskId) {
     const task = await TaskRepository.findById(taskId);
     if (!task) throw new Error("Task not found");
-
     return await TaskRepository.update(taskId, { status: "Approved" });
   }
 }
