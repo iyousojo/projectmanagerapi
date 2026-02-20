@@ -5,11 +5,10 @@ class TaskRepository {
     return await Task.create(taskData);
   }
 
-  // ✅ ADDED: Fetch tasks assigned to a specific student
-  // This matches the findByUser(userId) call in your TaskService
   async findByUser(userId) {
+    console.log(`[DB] Querying assignedTo: ${userId}`);
     return await Task.find({ assignedTo: userId })
-      .populate("project") // Useful if you need project details in the task card
+      .populate("project")
       .populate("createdBy", "fullName email")
       .sort({ createdAt: -1 });
   }
@@ -22,7 +21,6 @@ class TaskRepository {
   }
 
   async findById(id) {
-    // Populate project to ensure the service can read projectType and projectHead
     return await Task.findById(id).populate("project assignedTo");
   }
 
