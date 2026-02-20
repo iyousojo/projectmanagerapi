@@ -21,24 +21,20 @@ class AuthRepository {
   async deleteUser(id) {
     return await User.findByIdAndDelete(id);
   }
-  async findStudentsBySupervisor(adminId) {
+async findStudentsBySupervisor(adminId) {
     try {
-      // ✅ Convert the string ID to a MongoDB ObjectId
-      const supervisorObjectId = new mongoose.Types.ObjectId(adminId);
+      // ✅ CRITICAL: Convert the string "6997a8b5..." into a real Mongoose ObjectId
+      const supervisorId = new mongoose.Types.ObjectId(adminId);
 
-      const query = {
+      const students = await User.find({
         role: "student",
-        assignedSupervisor: supervisorObjectId // Match against the real ID type
-      };
+        assignedSupervisor: supervisorId // Now types match exactly
+      });
 
-      console.log("🔍 Running DB Query with ObjectId:", supervisorObjectId);
-      
-      const students = await User.find(query);
-      console.log(`📊 Query Result: Found ${students.length} students.`);
-      
+      console.log(`📊 DB Sync: Found ${students.length} students for Supervisor ${adminId}`);
       return students;
     } catch (err) {
-      console.error("DB Query Error (Likely invalid ID format):", err.message);
+      console.error("❌ Repository Error:", err.message);
       return [];
     }
   }

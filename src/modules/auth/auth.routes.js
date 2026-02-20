@@ -19,4 +19,16 @@ router.get("/debug-students", async (req, res) => {
     students: allUsers
   });
 });
+router.get("/check-db-raw", async (req, res) => {
+  const students = await User.find({ role: "student" }).select("fullName email assignedSupervisor");
+  res.json({
+    message: "Raw DB check",
+    students: students.map(s => ({
+      name: s.fullName,
+      email: s.email,
+      supervisorInDB: s.assignedSupervisor,
+      isMissingLink: !s.assignedSupervisor
+    }))
+  });
+});
 module.exports = router;
