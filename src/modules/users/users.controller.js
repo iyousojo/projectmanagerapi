@@ -19,38 +19,39 @@ class UsersController {
    * Updated getStudentsList
    * Logic: 
    * - If role is 'admin', fetch only their students.
-   * - If role is 'super-admin', fetch students without a supervisor (unassigned).
+   * - If role is 'super-admin', fetch unassigned students.
    */
   getStudentsList = async (req, res) => {
     try {
       let students;
       
       if (req.user.role === "admin") {
-        // Supervisors see their specifically assigned students
+        // Log the ID to verify what the Admin is sending
+        console.log(`Admin Fetching Students for ID: ${req.user.id}`);
+        
         students = await UsersService.getFilteredStudents(null, req.user.id);
+        
+        console.log(`Found ${students ? students.length : 0} students for this Admin.`);
       } else if (req.user.role === "super-admin") {
-        // Super Admin sees ALL students who don't have a supervisor yet
-        // We pass 'unassigned' as a flag to the service
         students = await UsersService.getFilteredStudents("unassigned", null);
       } else {
         return res.status(403).json({ status: "error", message: "Unauthorized" });
       }
       
-      // Return the array directly to satisfy the frontend's: setStudents(res.data)
-      res.status(200).json(students);
+      // ✅ Safety: Always return an array
+      res.status(200).json(Array.isArray(students) ? students : []);
     } catch (err) {
+      console.error("Controller Error:", err.message);
       res.status(400).json({ status: "error", message: err.message });
     }
   };
 
   /**
    * GET /api/users/superadmin/admins
-   * Used by Super Admin to see available supervisors for allocation
    */
   getAllAdmins = async (req, res) => {
     try {
       const admins = await UsersService.getAllAdmins();
-      // Returns array: [{_id, fullName, studentCount, department...}]
       res.status(200).json(admins);
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
@@ -59,7 +60,6 @@ class UsersController {
 
   /**
    * POST /api/users/authorize
-   * Links a Student to a Supervisor
    */
   authorizeStudent = async (req, res) => {
     try {
