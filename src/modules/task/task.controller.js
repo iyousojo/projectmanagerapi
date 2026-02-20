@@ -10,15 +10,32 @@ class TaskController {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
+async createTask(data, adminId) {
+  // 1. Check if a project was provided. If not, find the student's active project.
+  let projectId = data.project;
 
-  createTask = async (req, res) => {
-    try {
-      const task = await TaskService.createTask(req.body, req.user._id);
-      res.status(201).json({ status: "success", task });
-    } catch (err) {
-      res.status(400).json({ status: "error", message: err.message });
+  if (!projectId) {
+    const activeProject = await Project.findOne({ 
+      $or: [
+        { projectHead: data.assignedTo },
+        { members: data.assignedTo }
+      ]
+    });
+
+    if (!activeProject) {
+      throw new Error("This student is not linked to any project. Create a project first!");
     }
-  };
+    projectId = activeProject._id;
+  }
+
+  // 2. Create the task with the found Project ID
+  return await TaskRepository.create({ 
+    ...data, 
+    project: projectId, // ✅ Now the 'required' field is satisfied
+    createdBy: adminId,
+    status: "Pending"
+  });
+}
 
   getProjectTasks = async (req, res) => {
     try {
