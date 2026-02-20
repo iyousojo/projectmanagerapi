@@ -19,5 +19,9 @@ router.put("/:id/submit", roleMiddleware(["student"]), TaskController.completeTa
 
 // 4. Approve Task (Admin & Super-Admin)
 router.put("/:id/approve", roleMiddleware(["admin", "super-admin"]), TaskController.approveTask);
+// task.router.js
+
+// Add this route to handle the project-specific task creation
+router.post("/project/:projectId", roleMiddleware(["admin", "super-admin"]), TaskController.createTask);
 
 module.exports = router;

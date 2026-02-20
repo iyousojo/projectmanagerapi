@@ -9,16 +9,23 @@ class TaskController {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
+// task.controller.js
 
-  createTask = async (req, res) => {
-    try {
-      // ✅ JUST call the service. The service handles the project logic.
-      const task = await TaskService.createTask(req.body, req.user._id);
-      res.status(201).json({ status: "success", task });
-    } catch (err) {
-      res.status(400).json({ status: "error", message: err.message });
-    }
-  };
+createTask = async (req, res) => {
+  try {
+    // Get projectId from params (if using /project/:projectId) or from body
+    const projectId = req.params.projectId || req.body.project || req.body.projectId;
+    
+    // Combine the data
+    const taskData = { ...req.body, project: projectId };
+
+    const task = await TaskService.createTask(taskData, req.user._id);
+    res.status(201).json({ status: "success", task });
+  } catch (err) {
+    // This is where "Project is not defined" usually triggers if the Service fails
+    res.status(400).json({ status: "error", message: err.message });
+  }
+};
   getProjectTasks = async (req, res) => {
     try {
       const tasks = await TaskService.getTasksByProject(req.params.projectId);
