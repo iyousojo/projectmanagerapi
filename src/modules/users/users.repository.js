@@ -1,14 +1,14 @@
 const User = require("../auth/user.model");
-const mongoose = require("mongoose"); // ✅ Required for casting IDs
+const mongoose = require("mongoose");
 
 class UsersRepository {
   async findById(id) {
     return await User.findById(id).select("-password");
   }
 
-  // ✅ FIXED: Explicitly casting the ID to ensure Mongoose finds the match
   async getStudentsByAdmin(supervisorId) {
     try {
+      // Ensure we have a valid ObjectId
       const adminId = new mongoose.Types.ObjectId(supervisorId);
       
       const students = await User.find({ 
@@ -18,7 +18,13 @@ class UsersRepository {
       .select("-password")
       .sort({ fullName: 1 });
 
-      console.log(`Repository: Found ${students.length} students for Admin ${supervisorId}`);
+      // LOGGING FOR LOCALHOST TESTING
+      console.log("-----------------------------------------");
+      console.log(`Admin ID: ${supervisorId}`);
+      console.log(`Querying for assignedSupervisor: ${adminId}`);
+      console.log(`Results Found: ${students.length}`);
+      console.log("-----------------------------------------");
+
       return students;
     } catch (error) {
       console.error("Repository Error:", error.message);
@@ -26,7 +32,6 @@ class UsersRepository {
     }
   }
 
-  // ✅ SUPERADMIN: List unassigned students
   async getUnassignedStudents() {
     return await User.find({
       role: "student",
@@ -37,7 +42,6 @@ class UsersRepository {
     }).select("-password");
   }
 
-  // ✅ Pairing logic with casting
   async authorizeStudent(id, supervisorId) {
     const adminId = new mongoose.Types.ObjectId(supervisorId);
     return await User.findByIdAndUpdate(

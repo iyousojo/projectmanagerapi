@@ -2,7 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const http = require("http");
-const cors = require("cors"); // Added CORS
+const cors = require("cors");
 const { Server } = require("socket.io");
 
 dotenv.config();
@@ -10,15 +10,28 @@ dotenv.config();
 const app = express();
 
 // --- MIDDLEWARE ---
-// Critical: CORS must be configured so your Netlify bridge can call your API
 app.use(cors({
-  origin: "*", // For production, replace "*" with your Netlify URL
-  methods: ["GET", "POST"]
+  origin: "*", 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- DEBUGGING LOGS ---
+// ✅ VERIFY HANDSHAKE MIDDLEWARE
+// This will log every request from your phone to your VS Code terminal
+app.use((req, res, next) => {
+  console.log(`-----------------------------------------------`);
+  console.log(`🔔 [${new Date().toLocaleTimeString()}] HANDSHAKE DETECTED`);
+  console.log(`📱 IP: ${req.ip}`);
+  console.log(`🔗 Path: ${req.originalUrl}`);
+  console.log(`🛠️  Method: ${req.method}`);
+  console.log(`-----------------------------------------------`);
+  next();
+});
+
+// --- ROUTES ---
 const authRoutes = require("./modules/auth/auth.routes");
 const usersRoutes = require("./modules/users/users.routes");
 const chatRoutes = require("./modules/chat/chat.routes");
@@ -26,15 +39,6 @@ const projectRoutes = require("./modules/project/project.routes");
 const taskRoutes = require("./modules/task/task.routes");
 const notificationRoutes = require("./modules/notifications/notification.routes");
 
-console.log("Checking Routers...");
-console.log("Auth Router loaded:", typeof authRoutes === 'function' || !!authRoutes?.stack);
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected ✅"))
-  .catch(err => console.error("MongoDB Connection Error:", err));
-
-// --- ROUTES ---
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/chat", chatRoutes);
@@ -57,5 +61,17 @@ const setupSocket = require("./sockets/socket");
 setupSocket(io);
 require("./utils/cron.jobs");
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// --- UPDATED SERVER CONFIG ---
+const PORT = 1000; 
+const HOST = '0.0.0.0'; // Listen on all network interfaces
+
+server.listen(PORT, HOST, () => {
+  console.log(`
+  🚀 Server is broadcasting!
+  📡 Local:   http://localhost:${PORT}
+  📱 Network: http://192.168.160.189:${PORT}
+  
+  Note: If the phone doesn't connect, ensure Windows Firewall 
+  allows TCP traffic on Port 1000.
+  `);
+});
