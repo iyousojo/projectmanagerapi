@@ -1,25 +1,28 @@
 const User = require("../auth/user.model");
-const mongoose = require("mongoose"); // Added mongoose for ID casting
+const mongoose = require("mongoose"); // ✅ Required for casting IDs
 
 class UsersRepository {
   async findById(id) {
     return await User.findById(id).select("-password");
   }
 
-  // ✅ FIXED: Using ObjectId casting to ensure IDs match in the DB
+  // ✅ FIXED: Explicitly casting the ID to ensure Mongoose finds the match
   async getStudentsByAdmin(supervisorId) {
     try {
       const adminId = new mongoose.Types.ObjectId(supervisorId);
       
-      return await User.find({ 
+      const students = await User.find({ 
         role: "student", 
         assignedSupervisor: adminId 
       })
       .select("-password")
       .sort({ fullName: 1 });
+
+      console.log(`Repository: Found ${students.length} students for Admin ${supervisorId}`);
+      return students;
     } catch (error) {
-      console.error("Repository Error in getStudentsByAdmin:", error.message);
-      return []; // Return empty array instead of throwing to prevent frontend crash
+      console.error("Repository Error:", error.message);
+      return [];
     }
   }
 
@@ -34,7 +37,7 @@ class UsersRepository {
     }).select("-password");
   }
 
-  // ✅ Pairing logic with ID casting
+  // ✅ Pairing logic with casting
   async authorizeStudent(id, supervisorId) {
     const adminId = new mongoose.Types.ObjectId(supervisorId);
     return await User.findByIdAndUpdate(
