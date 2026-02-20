@@ -15,12 +15,21 @@ router.get("/", ProjectController.listProjects);
 // 4. Get specific project details
 router.get("/:id", ProjectController.getProjectDetails);
 
+// --- TASK & PROGRESS LOGS ---
+
+// ✅ NEW: Add a task/log entry to a project (Both can post)
+router.post(
+    "/:id/tasks", 
+    roleMiddleware(["student", "admin"]), 
+    ProjectController.addTask
+);
+
 // --- ADMIN TOTAL CONTROL ROUTES ---
 
 // 5. Update Project State (Status, Phase, Deadline, Description)
 router.patch(
     "/:id", 
-    roleMiddleware(["admin", ]), 
+    roleMiddleware(["admin"]), 
     ProjectController.updateProject
 );
 

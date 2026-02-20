@@ -1,5 +1,5 @@
 const ProjectService = require("./project.service");
-const User = require("../auth/user.model"); 
+const User = require("../auth/user.model");
 
 class ProjectController {
   createProject = async (req, res) => {
@@ -9,11 +9,9 @@ class ProjectController {
 
       if (req.user.role === "student") {
         const studentProfile = await User.findById(req.user._id);
-        
         if (!studentProfile || !studentProfile.assignedSupervisor) {
           throw new Error("You are not authorized under any supervisor yet. Please contact an Admin.");
         }
-        
         supervisorId = studentProfile.assignedSupervisor;
       } else {
         supervisorId = req.user._id;
@@ -58,18 +56,39 @@ class ProjectController {
     }
   };
 
-  // --- NEW: ADMIN TOTAL CONTROL METHODS ---
-
+  // ✅ NEW: Add Progress Log / Task
   /**
-   * ✅ Update Project (Phase, Status, Deadline, etc.)
-   * Used by Admins to manage the project lifecycle.
+   * Allows students and admins to add items to the tasks array
    */
+  addTask = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, description } = req.body;
+
+      // Ensure the service method exists to handle the $push logic
+      const updatedProject = await ProjectService.addTask(id, {
+        title,
+        description,
+        postedBy: req.user._id
+      });
+
+      res.status(201).json({ 
+        status: "success", 
+        message: "Log added successfully", 
+        project: updatedProject 
+      });
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
+    }
+  };
+
+  // --- ADMIN TOTAL CONTROL METHODS ---
+
   updateProject = async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = req.body;
 
-      // Logic: Service will check if req.user._id matches project.supervisor
       const updatedProject = await ProjectService.updateProject(id, updateData, req.user._id);
       
       res.json({ 
@@ -82,15 +101,10 @@ class ProjectController {
     }
   };
 
-  /**
-   * ✅ Delete Project
-   */
   deleteProject = async (req, res) => {
     try {
       const { id } = req.params;
-      
       await ProjectService.deleteProject(id, req.user._id);
-      
       res.json({ 
         status: "success", 
         message: "Project deleted permanently" 
