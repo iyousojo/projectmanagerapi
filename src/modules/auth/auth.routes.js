@@ -11,5 +11,12 @@ router.get("/profile", protect, (req, res, next) => AuthController.getProfile(re
 router.post("/verify-email", (req, res, next) => AuthController.verifyEmail(req, res, next));
 router.post("/forgot-password", (req, res, next) => AuthController.forgotPassword(req, res, next));
 router.post("/reset-password", (req, res, next) => AuthController.resetPassword(req, res, next));
-
+router.get("/debug-students", async (req, res) => {
+  const allUsers = await User.find({ role: "student" }).select("fullName email assignedSupervisor");
+  res.json({
+    message: "Debugging student assignments",
+    count: allUsers.length,
+    students: allUsers
+  });
+});
 module.exports = router;
