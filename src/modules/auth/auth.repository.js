@@ -23,20 +23,22 @@ class AuthRepository {
   }
   async findStudentsBySupervisor(adminId) {
     try {
-      // ✅ FIX: Ensure we try to find the ID as both a String and an ObjectId
-      // Some databases store it as a raw string, others as a BSON ObjectId
+      // ✅ Convert the string ID to a MongoDB ObjectId
+      const supervisorObjectId = new mongoose.Types.ObjectId(adminId);
+
       const query = {
         role: "student",
-        $or: [
-          { assignedSupervisor: adminId },
-          { assignedSupervisor: new mongoose.Types.ObjectId(adminId) }
-        ]
+        assignedSupervisor: supervisorObjectId // Match against the real ID type
       };
 
-      console.log("🔍 Running DB Query:", JSON.stringify(query));
-      return await User.find(query);
+      console.log("🔍 Running DB Query with ObjectId:", supervisorObjectId);
+      
+      const students = await User.find(query);
+      console.log(`📊 Query Result: Found ${students.length} students.`);
+      
+      return students;
     } catch (err) {
-      console.error("DB Query Error:", err);
+      console.error("DB Query Error (Likely invalid ID format):", err.message);
       return [];
     }
   }
