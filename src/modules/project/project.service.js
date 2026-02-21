@@ -1,4 +1,5 @@
 const ProjectRepository = require("./project.repository");
+const Project = require("./project.model"); // Required for the addTask direct call
 
 class ProjectService {
   async createProject(data) {
@@ -17,11 +18,11 @@ class ProjectService {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
+    // ✅ Standardized string comparison
     const isMember = project.members.some(m => m._id.toString() === userId.toString());
     const isSupervisor = project.supervisor._id.toString() === userId.toString();
     const isSuperAdmin = role === "super-admin";
 
-    // Super-Admin can view, but only Members/Supervisors have standard access
     if (!isSuperAdmin && !isMember && !isSupervisor) {
       throw new Error("Unauthorized access to this project");
     }
@@ -33,26 +34,23 @@ class ProjectService {
    * ✅ Update Project Service
    * STRICT LOGIC: Only the specifically assigned Admin (Supervisor) can modify.
    */
-// ✅ project.service.js
-
-async updateProject(projectId, updateData, userId) {
+  async updateProject(projectId, updateData, userId) {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
-    // FIX: Ensure both are strings for comparison
+    // Ensure we compare strings to avoid Mongoose ObjectId mismatch
     const supervisorId = project.supervisor._id.toString();
     const currentUserId = userId.toString();
 
     const isSupervisor = supervisorId === currentUserId;
 
     if (!isSupervisor) {
-        // Logging for debugging - check your terminal to see if IDs actually match
-        console.log(`Mismatch: Project Supervisor ${supervisorId} vs Current User ${currentUserId}`);
-        throw new Error("Access Denied: Only the assigned Supervisor can modify this project state.");
+      console.log(`Mismatch: Project Supervisor ${supervisorId} vs Current User ${currentUserId}`);
+      throw new Error("Access Denied: Only the assigned Supervisor can modify this project state.");
     }
 
     return await ProjectRepository.update(projectId, updateData);
-}
+  }
 
   /**
    * ✅ Delete Project Service
@@ -70,24 +68,32 @@ async updateProject(projectId, updateData, userId) {
 
     return await ProjectRepository.delete(projectId);
   }
-  
 
+  /**
+   * ✅ Add Task / Progress Log
+   * Allows adding items to the tasks array
+   */
+  async addTask(projectId, taskData) {
+    // Ensuring the project exists first
+    const projectExists = await ProjectRepository.findById(projectId);
+    if (!projectExists) throw new Error("Project not found");
 
-async addTask(projectId, taskData) {
-  // We use findByIdAndUpdate with $push to add to the tasks array
-  return await Project.findByIdAndUpdate(
-    projectId,
-    { 
-      $push: { 
-        tasks: { 
-          title: taskData.title, 
-          description: taskData.description,
-          createdAt: new Date() 
-        } 
-      } 
-    },
-    { new: true }
-  );
+    return await Project.findByIdAndUpdate(
+      projectId,
+      {
+        $push: {
+          tasks: {
+            title: taskData.title,
+            description: taskData.description,
+            postedBy: taskData.postedBy, // Added to track who made the log
+            createdAt: new Date(),
+          },
+        },
+      },
+      { new: true }
+    ).populate("members", "fullName email")
+     .populate("supervisor", "fullName email");
+  }
 }
-}
+
 module.exports = new ProjectService();
