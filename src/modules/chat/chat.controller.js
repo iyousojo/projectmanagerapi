@@ -1,42 +1,60 @@
-const ChatService = require("./chat.service");
+const Chat = require("./chat.model");
 
 class ChatController {
+  // Send Message
   sendMessage = async (req, res) => {
     try {
-      // Destructure senderRole along with other fields
-      const { receiver, projectId, message, senderRole } = req.body;
-      const sender = req.user.id;
-      
-      // Order must match Service: (senderId, receiver, projectId, message, senderRole)
-      const chat = await ChatService.sendMessage(
-        sender, 
-        receiver, 
-        projectId, 
-        message, 
-        senderRole
-      );
-      
-      return res.json({ status: "success", chat });
+      const { projectId, receiverId, message } = req.body;
+      const senderId = req.user._id;
+
+      const chatData = {
+        sender: senderId,
+        message,
+        createdAt: new Date()
+      };
+
+      if (projectId) {
+        chatData.projectId = projectId;
+      } else {
+        chatData.receiver = receiverId;
+      }
+
+      const newChat = await Chat.create(chatData);
+      const populatedChat = await Chat.findById(newChat._id).populate("sender", "fullName profilePic");
+
+      res.status(201).json({ status: "success", chat: populatedChat });
     } catch (err) {
-      // Log error for internal debugging
-      console.error("ChatController Error:", err.message);
-      return res.status(400).json({ status: "error", message: err.message });
+      res.status(400).json({ status: "error", message: err.message });
     }
   };
 
+  // Get Messages
   getMessages = async (req, res) => {
     try {
-      const { targetId } = req.params;
+      const { id } = req.params; // This is either ProjectID or OtherUserID
       const { isProject } = req.query;
-      
-      const chat = await ChatService.fetchChatHistory(
-        req.user.id, 
-        targetId, 
-        isProject === "true"
-      );
-      return res.json({ status: "success", chat });
+      const currentUserId = req.user._id;
+
+      let query;
+      if (isProject === "true") {
+        query = { projectId: id };
+      } else {
+        // Find messages where (Me -> Them) OR (Them -> Me)
+        query = {
+          $or: [
+            { sender: currentUserId, receiver: id },
+            { sender: id, receiver: currentUserId }
+          ]
+        };
+      }
+
+      const chat = await Chat.find(query)
+        .sort({ createdAt: 1 })
+        .populate("sender", "fullName profilePic");
+
+      res.json({ status: "success", chat });
     } catch (err) {
-      return res.status(400).json({ status: "error", message: err.message });
+      res.status(400).json({ status: "error", message: err.message });
     }
   };
 }

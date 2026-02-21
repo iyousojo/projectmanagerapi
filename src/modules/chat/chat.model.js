@@ -1,14 +1,25 @@
 const mongoose = require("mongoose");
 
 const chatSchema = new mongoose.Schema({
-  sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  // For Individual Chat
-  receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, 
-  // For Group/Project Chat
-  project: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
-  
+  // If it's a group chat
+  projectId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Project",
+    default: null 
+  },
+  // If it's an individual chat
+  sender: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User", 
+    required: true 
+  },
+  receiver: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User",
+    default: null 
+  },
   message: { type: String, required: true },
-  isRead: { type: Boolean, default: false },
-}, { timestamps: true });
+  createdAt: { type: Date, default: Date.now }
+});
 
 module.exports = mongoose.model("Chat", chatSchema);
