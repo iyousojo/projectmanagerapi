@@ -20,7 +20,6 @@ class ProjectService {
 
     const isMember = project.members.some(m => m._id.toString() === userId.toString());
     
-    // ✅ FIXED: Safety check in case supervisor is null/undefined
     const isSupervisor = project.supervisor && 
         (project.supervisor._id ? project.supervisor._id.toString() : project.supervisor.toString()) === userId.toString();
     
@@ -37,19 +36,24 @@ class ProjectService {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
-    // ✅ FIXED: Guard against projects that lack a supervisor
     if (!project.supervisor) throw new Error("Action Denied: This project has no assigned supervisor.");
 
-    // Handle populated vs unpopulated supervisor object
     const supervisorId = project.supervisor._id 
         ? project.supervisor._id.toString() 
         : project.supervisor.toString();
         
     const currentUserId = userId.toString();
 
+    // Allow Admin/Supervisor to update. 
+    // Note: If you have SuperAdmins, you might want to add (role !== 'super-admin') check here.
     if (supervisorId !== currentUserId) {
-      console.log(`Mismatch: Project Supervisor (${supervisorId}) vs Current User (${currentUserId})`);
       throw new Error("Access Denied: You are not the assigned Supervisor for this project.");
+    }
+
+    // ✅ Logic for changing Project Head
+    if (updateData.projectHead) {
+      const isMember = project.members.some(m => m._id.toString() === updateData.projectHead.toString());
+      if (!isMember) throw new Error("The selected user must be a member of this project.");
     }
 
     return await ProjectRepository.update(projectId, updateData);
@@ -58,11 +62,9 @@ class ProjectService {
   async deleteProject(projectId, userId) {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
-
     if (!project.supervisor) throw new Error("Action Denied: This project has no assigned supervisor.");
 
     const supervisorId = project.supervisor._id ? project.supervisor._id.toString() : project.supervisor.toString();
-
     if (supervisorId !== userId.toString()) {
       throw new Error("Unauthorized: Only the assigned Supervisor can delete this project.");
     }
@@ -87,7 +89,7 @@ class ProjectService {
         },
       },
       { new: true }
-    ).populate("members", "fullName email")
+    ).populate("members", "fullName email profilePic")
      .populate("supervisor", "fullName email");
   }
 }
