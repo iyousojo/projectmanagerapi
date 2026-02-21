@@ -12,7 +12,7 @@ class ChatRepository {
         { sender: userId1, receiver: userId2 },
         { sender: userId2, receiver: userId1 }
       ],
-      project: { $exists: false } // Ensure we don't grab group messages
+      projectId: null // Ensure we don't grab group messages
     }).sort("createdAt").populate("sender", "fullName");
   }
 

@@ -1,11 +1,9 @@
 const TaskRepository = require("./task.repository");
 
 class TaskService {
-  async createTask(taskData, creatorId) {
-    // Ensure the creator is attached
+async createTask(taskData, creatorId) {
     const finalData = { ...taskData, createdBy: creatorId };
     
-    // Validation: Check if project and assignedTo are present
     if (!finalData.project || !finalData.assignedTo) {
       throw new Error("Missing project ID or assigned student ID");
     }
@@ -30,12 +28,13 @@ class TaskService {
     return await TaskRepository.findByProject(projectId);
   }
 
-  async submitTask(taskId, studentId) {
+ async submitTask(taskId, studentId) {
     const task = await TaskRepository.findById(taskId);
     if (!task) throw new Error("Task not found");
     
-    // Safety check: ensure only the assigned student can submit
-    if (task.assignedTo._id.toString() !== studentId.toString()) {
+    // SAFE ID COMPARISON
+    const assignedId = task.assignedTo._id || task.assignedTo;
+    if (!assignedId.equals(studentId)) {
       throw new Error("Unauthorized: You are not assigned to this task");
     }
 

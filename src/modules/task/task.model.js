@@ -7,9 +7,10 @@ const taskSchema = new mongoose.Schema({
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   dueDate: { type: Date },
+  priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
   status: { 
     type: String, 
-    enum: ["Pending", "Submitted", "Approved"], 
+    enum: ["Pending", "Submitted", "Approved", "Rejected"], 
     default: "Pending" 
   }
 }, { timestamps: true });

@@ -1,4 +1,5 @@
 const User = require("./user.model");
+const mongoose = require("mongoose"); // Added this missing import
 
 class AuthRepository {
   async createUser(data) { 

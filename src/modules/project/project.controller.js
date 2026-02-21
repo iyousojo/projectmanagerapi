@@ -1,5 +1,6 @@
 const ProjectService = require("./project.service");
 const User = require("../auth/user.model");
+const NotificationsService = require("../notifications/notification.service");
 
 class ProjectController {
   createProject = async (req, res) => {
@@ -10,7 +11,7 @@ class ProjectController {
       if (req.user.role === "student") {
         const studentProfile = await User.findById(req.user._id);
         if (!studentProfile || !studentProfile.assignedSupervisor) {
-          throw new Error("You are not authorized under any supervisor yet. Please contact an Admin.");
+          throw new Error("You are not authorized under any supervisor yet.");
         }
         supervisorId = studentProfile.assignedSupervisor;
       } else {
@@ -35,12 +36,9 @@ class ProjectController {
 
   listProjects = async (req, res) => {
     try {
-      let projects;
-      if (req.user.role === "admin" || req.user.role === "super-admin") {
-        projects = await ProjectService.getProjectsBySupervisor(req.user._id);
-      } else {
-        projects = await ProjectService.getProjectsByMember(req.user._id);
-      }
+      let projects = (req.user.role === "admin" || req.user.role === "super-admin") 
+        ? await ProjectService.getProjectsBySupervisor(req.user._id)
+        : await ProjectService.getProjectsByMember(req.user._id);
       res.json({ status: "success", count: projects.length, projects });
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
@@ -56,46 +54,20 @@ class ProjectController {
     }
   };
 
-  // ✅ NEW: Add Progress Log / Task
-  /**
-   * Allows students and admins to add items to the tasks array
-   */
   addTask = async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, description } = req.body;
-
-      // Ensure the service method exists to handle the $push logic
-      const updatedProject = await ProjectService.addTask(id, {
-        title,
-        description,
-        postedBy: req.user._id
-      });
-
-      res.status(201).json({ 
-        status: "success", 
-        message: "Log added successfully", 
-        project: updatedProject 
-      });
+      const newTask = await ProjectService.addTask(id, req.body, req.user._id);
+      res.status(201).json({ status: "success", task: newTask });
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
 
-  // --- ADMIN TOTAL CONTROL METHODS ---
-
   updateProject = async (req, res) => {
     try {
-      const { id } = req.params;
-      const updateData = req.body;
-
-      const updatedProject = await ProjectService.updateProject(id, updateData, req.user._id);
-      
-      res.json({ 
-        status: "success", 
-        message: "Project state updated successfully", 
-        project: updatedProject 
-      });
+      const updatedProject = await ProjectService.updateProject(req.params.id, req.body, req.user._id);
+      res.json({ status: "success", project: updatedProject });
     } catch (err) {
       res.status(403).json({ status: "error", message: err.message });
     }
@@ -103,16 +75,13 @@ class ProjectController {
 
   deleteProject = async (req, res) => {
     try {
-      const { id } = req.params;
-      await ProjectService.deleteProject(id, req.user._id);
-      res.json({ 
-        status: "success", 
-        message: "Project deleted permanently" 
-      });
+      await ProjectService.deleteProject(req.params.id, req.user._id);
+      res.json({ status: "success", message: "Project deleted" });
     } catch (err) {
       res.status(403).json({ status: "error", message: err.message });
     }
   };
 }
 
+// Ensure this is the ONLY export in the file and it's at the very bottom
 module.exports = new ProjectController();

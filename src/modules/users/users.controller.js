@@ -1,4 +1,6 @@
 const UsersService = require("./users.service");
+const User = require("../auth/user.model"); // Added this to prevent "User is not defined" error
+const NotificationsService = require("../notifications/notification.service");
 
 class UsersController {
   // GET /api/users/me
@@ -26,19 +28,14 @@ class UsersController {
       let students;
       
       if (req.user.role === "admin") {
-        // Log the ID to verify what the Admin is sending
         console.log(`Admin Fetching Students for ID: ${req.user.id}`);
-        
         students = await UsersService.getFilteredStudents(null, req.user.id);
-        
-        console.log(`Found ${students ? students.length : 0} students for this Admin.`);
       } else if (req.user.role === "super-admin") {
         students = await UsersService.getFilteredStudents("unassigned", null);
       } else {
         return res.status(403).json({ status: "error", message: "Unauthorized" });
       }
       
-      // ✅ Safety: Always return an array
       res.status(200).json(Array.isArray(students) ? students : []);
     } catch (err) {
       console.error("Controller Error:", err.message);
@@ -60,22 +57,33 @@ class UsersController {
 
   /**
    * POST /api/users/authorize
+   * Logic: Links a student to a supervisor and notifies both.
    */
   authorizeStudent = async (req, res) => {
     try {
       const { studentId, supervisorId } = req.body;
       
-      if (!studentId || !supervisorId) {
-        return res.status(400).json({ status: "error", message: "Student ID and Supervisor ID are required" });
-      }
-
+      // Update the student record in DB
       const updatedStudent = await UsersService.authorizeStudent(studentId, supervisorId);
       
-      res.json({ 
-        status: "success", 
-        message: "Allocation successful", 
-        user: updatedStudent 
+      // Fetch supervisor details to include their name in the notification
+      const supervisor = await User.findById(supervisorId);
+
+      // 1. Notify the Student
+      await NotificationsService.createNotification({
+        recipient: studentId,
+        message: `Allocation Success: You have been assigned to Supervisor ${supervisor.fullName}.`,
+        type: "assignment"
       });
+
+      // 2. Notify the Admin/Supervisor
+      await NotificationsService.createNotification({
+        recipient: supervisorId,
+        message: `New Assignment: Student ${updatedStudent.fullName} is now under your supervision.`,
+        type: "assignment"
+      });
+
+      res.json({ status: "success", user: updatedStudent });
     } catch (err) {
       res.status(400).json({ status: "error", message: err.message });
     }

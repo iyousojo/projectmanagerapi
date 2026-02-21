@@ -77,20 +77,20 @@ class UsersRepository {
   }
 
   async getAdminsWithTheirStudents() {
-    return await User.aggregate([
-      { $match: { role: "admin" } },
-      {
-        $lookup: {
-          from: "users", 
-          localField: "_id",
-          foreignField: "assignedSupervisor",
-          as: "supervisedStudents"
-        }
-      },
-      { $addFields: { studentCount: { $size: "$supervisedStudents" } } },
-      { $project: { password: 0, "supervisedStudents.password": 0 } }
-    ]);
-  }
+  return await User.aggregate([
+    { $match: { role: "admin" } },
+    {
+      $lookup: {
+        from: "users", 
+        localField: "_id",
+        foreignField: "assignedSupervisor",
+        as: "supervisedStudents"
+      }
+    },
+    { $addFields: { studentCount: { $size: "$supervisedStudents" } } },
+    { $project: { password: 0, "supervisedStudents.password": 0 } }
+  ]);
+}
 
   async getStudentsByStatus(status) {
     const query = { role: "student" };

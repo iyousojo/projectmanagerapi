@@ -1,5 +1,6 @@
 const ProjectRepository = require("./project.repository");
-const Project = require("./project.model"); 
+const Project = require("./project.model");
+const TaskService = require("../task/task.service"); 
 
 class ProjectService {
   async createProject(data) {
@@ -72,25 +73,32 @@ class ProjectService {
     return await ProjectRepository.delete(projectId);
   }
 
-  async addTask(projectId, taskData) {
-    const projectExists = await ProjectRepository.findById(projectId);
-    if (!projectExists) throw new Error("Project not found");
+/**
+   * Redirects the task creation logic to the TaskService
+   * while ensuring the project exists.
+   */
+  async addTask(projectId, taskData, userId) {
+    const project = await ProjectRepository.findById(projectId);
+    if (!project) throw new Error("Project not found");
 
-    return await Project.findByIdAndUpdate(
-      projectId,
-      {
-        $push: {
-          tasks: {
-            title: taskData.title,
-            description: taskData.description,
-            postedBy: taskData.postedBy,
-            createdAt: new Date(),
-          },
-        },
-      },
-      { new: true }
-    ).populate("members", "fullName email profilePic")
-     .populate("supervisor", "fullName email");
+    // Check if the user is a member or the supervisor
+    const isMember = project.members.some(m => m._id.toString() === userId.toString());
+    const isSupervisor = project.supervisor && project.supervisor._id.toString() === userId.toString();
+
+    if (!isMember && !isSupervisor) {
+      throw new Error("Unauthorized: You must be a member or supervisor of this project to add tasks.");
+    }
+
+    // Prepare the data for TaskService
+    const taskPayload = {
+      ...taskData,
+      project: projectId,
+      // Default to the user adding it if assignedTo isn't specified
+      assignedTo: taskData.assignedTo || userId 
+    };
+
+    // Return the result from TaskService.createTask
+    return await TaskService.createTask(taskPayload, userId);
   }
 }
 

@@ -1,4 +1,6 @@
 const Chat = require("./chat.model");
+const Project = require("../project/project.model"); // Added missing import
+const NotificationsService = require("../notifications/notification.service");
 
 class ChatController {
   // Send Message
@@ -10,17 +12,43 @@ class ChatController {
       const chatData = {
         sender: senderId,
         message,
-        createdAt: new Date()
+        createdAt: new Date(),
+        ...(projectId ? { projectId } : { receiver: receiverId })
       };
-
-      if (projectId) {
-        chatData.projectId = projectId;
-      } else {
-        chatData.receiver = receiverId;
-      }
 
       const newChat = await Chat.create(chatData);
       const populatedChat = await Chat.findById(newChat._id).populate("sender", "fullName profilePic");
+
+      // --- NOTIFICATION LOGIC ---
+      if (projectId) {
+        const project = await Project.findById(projectId);
+        if (project) {
+          // Identify all members + supervisor, excluding the person who just sent the message
+          const recipients = [
+            project.supervisor, 
+            project.projectHead, 
+            ...(project.members || [])
+          ].filter(id => id && id.toString() !== senderId.toString());
+
+          // Create unique set of IDs to avoid duplicate notifications
+          const uniqueRecipients = [...new Set(recipients.map(r => r.toString()))];
+
+          for (const userId of uniqueRecipients) {
+            await NotificationsService.createNotification({
+              recipient: userId,
+              message: `[${project.title}] ${req.user.fullName}: ${message.substring(0, 30)}${message.length > 30 ? '...' : ''}`,
+              type: "info"
+            });
+          }
+        }
+      } else if (receiverId) {
+        // Direct Message Notification
+        await NotificationsService.createNotification({
+          recipient: receiverId,
+          message: `${req.user.fullName} sent you a message: "${message.substring(0, 30)}..."`,
+          type: "info"
+        });
+      }
 
       res.status(201).json({ status: "success", chat: populatedChat });
     } catch (err) {
@@ -31,7 +59,7 @@ class ChatController {
   // Get Messages
   getMessages = async (req, res) => {
     try {
-      const { id } = req.params; // This is either ProjectID or OtherUserID
+      const { id } = req.params; // ProjectID or OtherUserID
       const { isProject } = req.query;
       const currentUserId = req.user._id;
 
@@ -39,7 +67,6 @@ class ChatController {
       if (isProject === "true") {
         query = { projectId: id };
       } else {
-        // Find messages where (Me -> Them) OR (Them -> Me)
         query = {
           $or: [
             { sender: currentUserId, receiver: id },

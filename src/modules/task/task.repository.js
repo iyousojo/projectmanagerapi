@@ -1,4 +1,5 @@
 const Task = require("./task.model");
+const mongoose = require("mongoose");
 
 class TaskRepository {
   async create(taskData) {
@@ -6,7 +7,6 @@ class TaskRepository {
   }
 
   async findByUser(userId) {
-    console.log(`[DB] Querying assignedTo: ${userId}`);
     return await Task.find({ assignedTo: userId })
       .populate("project")
       .populate("createdBy", "fullName email")
@@ -20,12 +20,29 @@ class TaskRepository {
       .sort({ createdAt: -1 });
   }
 
+  /**
+   * Deep populate is used here so the Controller can access:
+   * task.project.supervisor (for notifications)
+   */
   async findById(id) {
-    return await Task.findById(id).populate("project assignedTo");
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return await Task.findById(id)
+      .populate({
+        path: "project",
+        select: "title supervisor projectHead"
+      })
+      .populate("assignedTo", "fullName email expoPushToken");
   }
 
   async update(id, updateData) {
-    return await Task.findByIdAndUpdate(id, updateData, { new: true });
+    return await Task.findByIdAndUpdate(id, updateData, { 
+      new: true, 
+      runValidators: true 
+    });
+  }
+
+  async deleteTask(id) {
+    return await Task.findByIdAndDelete(id);
   }
 }
 
