@@ -100,6 +100,26 @@ class UsersController {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
+  updatePushToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      throw new Error("Token is required");
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { 
+      expoPushToken: token 
+    });
+
+    res.json({ 
+      status: "success", 
+      message: "Push token registered successfully" 
+    });
+  } catch (err) {
+    res.status(400).json({ status: "error", message: err.message });
+  }
+};
 }
 
 module.exports = new UsersController();

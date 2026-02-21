@@ -46,5 +46,8 @@ router.get(
   roleMiddleware(["admin"]), 
   UsersController.getStudentsList
 );
-
+router.patch(
+  "/push-token", 
+  UsersController.updatePushToken
+);
 module.exports = router;
