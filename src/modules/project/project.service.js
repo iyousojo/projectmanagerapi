@@ -33,19 +33,26 @@ class ProjectService {
    * ✅ Update Project Service
    * STRICT LOGIC: Only the specifically assigned Admin (Supervisor) can modify.
    */
-  async updateProject(projectId, updateData, userId) {
+// ✅ project.service.js
+
+async updateProject(projectId, updateData, userId) {
     const project = await ProjectRepository.findById(projectId);
     if (!project) throw new Error("Project not found");
 
-    // Check if the person trying to update is the assigned supervisor
-    const isSupervisor = project.supervisor._id.toString() === userId.toString();
+    // FIX: Ensure both are strings for comparison
+    const supervisorId = project.supervisor._id.toString();
+    const currentUserId = userId.toString();
+
+    const isSupervisor = supervisorId === currentUserId;
 
     if (!isSupervisor) {
-      throw new Error("Access Denied: Only the assigned Supervisor can modify this project state.");
+        // Logging for debugging - check your terminal to see if IDs actually match
+        console.log(`Mismatch: Project Supervisor ${supervisorId} vs Current User ${currentUserId}`);
+        throw new Error("Access Denied: Only the assigned Supervisor can modify this project state.");
     }
 
     return await ProjectRepository.update(projectId, updateData);
-  }
+}
 
   /**
    * ✅ Delete Project Service
