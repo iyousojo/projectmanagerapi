@@ -35,5 +35,4 @@ const roleMiddleware = (roles) => {
   };
 };
 
-// Ensure this is exactly as written
 module.exports = { protect, roleMiddleware };

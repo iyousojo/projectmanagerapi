@@ -15,39 +15,12 @@ class AuthController {
 
   login = async (req, res, next) => {
     try {
-      // ✅ Updated to extract expoPushToken
+      // ✅ Extracts token from the mobile app's request
       const { email, password, expoPushToken } = req.body;
       const data = await AuthService.login(email, password, expoPushToken);
       res.json({ status: "success", ...data });
     } catch (err) { 
       next(err); 
-    }
-  };
-
-  verifyEmail = async (req, res, next) => {
-    try {
-      await AuthService.verifyEmail(req.body.email, req.body.token);
-      res.json({ status: "success", message: "Email verified successfully!" });
-    } catch (err) { 
-      next(err); 
-    }
-  };
-
-  forgotPassword = async (req, res, next) => {
-    try {
-      await AuthService.forgotPassword(req.body.email);
-      res.json({ status: "success", message: "Password reset link sent to email." });
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  resetPassword = async (req, res, next) => {
-    try {
-      await AuthService.resetPassword(req.body.token, req.body.password);
-      res.json({ status: "success", message: "Password updated successfully!" });
-    } catch (err) {
-      next(err);
     }
   };
 
@@ -59,6 +32,27 @@ class AuthController {
     } catch (err) {
       next(err);
     }
+  };
+
+  verifyEmail = async (req, res, next) => {
+    try {
+      await AuthService.verifyEmail(req.body.email, req.body.token);
+      res.json({ status: "success", message: "Email verified successfully!" });
+    } catch (err) { next(err); }
+  };
+
+  forgotPassword = async (req, res, next) => {
+    try {
+      await AuthService.forgotPassword(req.body.email);
+      res.json({ status: "success", message: "Password reset link sent to email." });
+    } catch (err) { next(err); }
+  };
+
+  resetPassword = async (req, res, next) => {
+    try {
+      await AuthService.resetPassword(req.body.token, req.body.password);
+      res.json({ status: "success", message: "Password updated successfully!" });
+    } catch (err) { next(err); }
   };
 }
 

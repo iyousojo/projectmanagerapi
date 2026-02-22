@@ -16,7 +16,6 @@ class AuthService {
     return await AuthRepository.createUser(userData);
   }
 
-  // ✅ Receives token from Controller
   async login(email, password, expoPushToken = null) {
     const user = await AuthRepository.findByEmail(email);
     
@@ -28,11 +27,10 @@ class AuthService {
       throw new Error("Your account is pending admin approval.");
     }
 
-    // ✅ Save/Update the push token in the DB
+    // ✅ Crucial: Save the token so the app doesn't have to keep requesting it
     if (expoPushToken) {
       user.expoPushToken = expoPushToken;
       await user.save();
-      console.log(`Push token updated for ${email}`);
     }
 
     const token = jwt.sign(
@@ -52,9 +50,9 @@ class AuthService {
     return userObj;
   }
 
-  async verifyEmail(email, token) { return true; }
-  async forgotPassword(email) { throw new Error("Disabled for maintenance."); }
-  async resetPassword(token, newPassword) { throw new Error("Disabled."); }
+  async verifyEmail() { return true; }
+  async forgotPassword() { throw new Error("Maintenance mode."); }
+  async resetPassword() { throw new Error("Maintenance mode."); }
 }
 
 module.exports = new AuthService();
