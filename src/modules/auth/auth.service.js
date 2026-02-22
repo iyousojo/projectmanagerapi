@@ -1,19 +1,10 @@
 const AuthRepository = require("./auth.repository");
-const User = require("./user.model"); 
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
 
 class AuthService {
-  /**
-   * Registers a new user. 
-   * Email verification is currently DISABLED to avoid cloud host blocks.
-   */
   async register(data) {
     const existingUser = await AuthRepository.findByEmail(data.email);
-
-    if (existingUser) {
-      throw new Error("Email already in use. Please login instead.");
-    }
+    if (existingUser) throw new Error("Email already in use.");
 
     const userData = {
       ...data,
@@ -22,12 +13,11 @@ class AuthService {
       isAuthorized: !(data.role === "admin" || data.role === "super-admin")
     };
 
-    const user = await AuthRepository.createUser(userData);
-    console.log(`User ${user.email} registered and auto-verified. ✅`);
-    return user;
+    return await AuthRepository.createUser(userData);
   }
 
-  async login(email, password) {
+  // ✅ Updated to save the push token
+  async login(email, password, expoPushToken = null) {
     const user = await AuthRepository.findByEmail(email);
     
     if (!user || !(await user.matchPassword(password))) {
@@ -36,6 +26,12 @@ class AuthService {
     
     if (!user.isAuthorized) {
       throw new Error("Your account is pending admin approval.");
+    }
+
+    // Update token if provided by frontend
+    if (expoPushToken) {
+      user.expoPushToken = expoPushToken;
+      await user.save();
     }
 
     const token = jwt.sign(
@@ -47,39 +43,17 @@ class AuthService {
     return { user, token };
   }
 
-  /**
-   * ✅ NEW: Fetches fresh user data from DB for frontend sync
-   * This ensures the frontend has the latest role and supervisor assignment.
-   */
   async getUserProfile(userId) {
     const user = await AuthRepository.findById(userId);
-    if (!user) {
-      throw new Error("User not found.");
-    }
-    // Convert to object and strip password for safety
+    if (!user) throw new Error("User not found.");
     const userObj = user.toObject();
     delete userObj.password;
     return userObj;
   }
 
-  /**
-   * Placeholder - Always returns true while verification is disabled
-   */
-  async verifyEmail(email, token) {
-    console.log("Verification requested, but auto-verify is active.");
-    return true;
-  }
-
-  /**
-   * Placeholder - Disabled to prevent ETIMEDOUT errors on Render
-   */
-  async forgotPassword(email) {
-    throw new Error("Password reset via email is currently disabled for maintenance.");
-  }
-
-  async resetPassword(token, newPassword) {
-    throw new Error("Password reset is currently disabled.");
-  }
+  async verifyEmail(email, token) { return true; }
+  async forgotPassword(email) { throw new Error("Disabled for maintenance."); }
+  async resetPassword(token, newPassword) { throw new Error("Disabled."); }
 }
 
 module.exports = new AuthService();

@@ -1,10 +1,6 @@
 const AuthService = require("./auth.service");
 
 class AuthController {
-  /**
-   * Handles user registration
-   * Updated message to reflect that verification is skipped
-   */
   register = async (req, res, next) => {
     try {
       await AuthService.register(req.body);
@@ -17,21 +13,17 @@ class AuthController {
     }
   };
 
-  /**
-   * Handles user login
-   */
   login = async (req, res, next) => {
     try {
-      const data = await AuthService.login(req.body.email, req.body.password);
+      // ✅ Updated to extract expoPushToken
+      const { email, password, expoPushToken } = req.body;
+      const data = await AuthService.login(email, password, expoPushToken);
       res.json({ status: "success", ...data });
     } catch (err) { 
       next(err); 
     }
   };
 
-  /**
-   * Verify Email (Currently auto-handled by service)
-   */
   verifyEmail = async (req, res, next) => {
     try {
       await AuthService.verifyEmail(req.body.email, req.body.token);
@@ -41,9 +33,6 @@ class AuthController {
     }
   };
 
-  /**
-   * Forgot Password request
-   */
   forgotPassword = async (req, res, next) => {
     try {
       await AuthService.forgotPassword(req.body.email);
@@ -53,9 +42,6 @@ class AuthController {
     }
   };
 
-  /**
-   * Final Password Reset
-   */
   resetPassword = async (req, res, next) => {
     try {
       await AuthService.resetPassword(req.body.token, req.body.password);
@@ -67,10 +53,8 @@ class AuthController {
 
   getProfile = async (req, res, next) => {
     try {
-      // req.user.id is populated by your authenticate middleware
       const userId = req.user.id; 
       const user = await AuthService.getUserProfile(userId);
-      
       res.json(user);
     } catch (err) {
       next(err);
