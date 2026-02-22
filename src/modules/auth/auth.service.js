@@ -16,7 +16,7 @@ class AuthService {
     return await AuthRepository.createUser(userData);
   }
 
-  // ✅ Updated to save the push token
+  // ✅ Receives token from Controller
   async login(email, password, expoPushToken = null) {
     const user = await AuthRepository.findByEmail(email);
     
@@ -28,10 +28,11 @@ class AuthService {
       throw new Error("Your account is pending admin approval.");
     }
 
-    // Update token if provided by frontend
+    // ✅ Save/Update the push token in the DB
     if (expoPushToken) {
       user.expoPushToken = expoPushToken;
       await user.save();
+      console.log(`Push token updated for ${email}`);
     }
 
     const token = jwt.sign(
