@@ -28,19 +28,26 @@ async createTask(taskData, creatorId) {
     return await TaskRepository.findByProject(projectId);
   }
 
- async submitTask(taskId, studentId) {
+ async submitTask(taskId, userId) {
     const task = await TaskRepository.findById(taskId);
     if (!task) throw new Error("Task not found");
     
-    // SAFE ID COMPARISON
+    // 1. Get the assigned user ID
     const assignedId = task.assignedTo._id || task.assignedTo;
-    if (!assignedId.equals(studentId)) {
-      throw new Error("Unauthorized: You are not assigned to this task");
+    
+    // 2. We need to check if the user is the assigned student OR the Project Head
+    // We assume the task object has the project info, or we fetch it
+    const project = await require("../project/project.model").findById(task.project);
+    
+    const isAssigned = assignedId.toString() === userId.toString();
+    const isProjectHead = project && project.projectHead && project.projectHead.toString() === userId.toString();
+
+    if (!isAssigned && !isProjectHead) {
+      throw new Error("Unauthorized: You are not assigned to this task and you are not the Project Head");
     }
 
     return await TaskRepository.update(taskId, { status: "Submitted" });
   }
-
   async approveTask(taskId) {
     return await TaskRepository.update(taskId, { status: "Approved" });
   }

@@ -95,39 +95,30 @@ class TaskController {
    */
   completeTask = async (req, res) => {
     try {
-      // 1. Get the task details first to find the project ID
-      const tasksByProject = await TaskService.getTasksByProject(req.body.projectId || req.query.projectId); 
-      // Note: If your service has a getTaskById, use that instead.
-      // For now, we'll fetch the task directly to check permissions
-      const task = await TaskService.getTasksByUser(req.user._id).then(tasks => 
-        tasks.find(t => t._id.toString() === req.params.id)
-      );
+      const taskId = req.params.id;
+      const currentUserId = req.user._id;
 
-      // 2. Fetch Project to check who the Head is
-      // We need to ensure we have the project data
-      const project = await Project.findOne({ 
-        $or: [{ assignedTo: req.user._id }, { projectHead: req.user._id }, { supervisor: req.user._id }] 
-      }).populate('projectHead');
+      // The Service now handles the logic of checking if currentUserId 
+      // is either the Assigned Student OR the Project Head.
+      const updatedTask = await TaskService.submitTask(taskId, currentUserId);
 
-      // 3. Logic: Allow if user is AssignedTo OR if user is ProjectHead
-      // We pass the task ID. The Service needs to be flexible or we override here.
-      const updatedTask = await TaskService.submitTask(req.params.id, req.user._id);
+      // Fetch project to notify the supervisor
+      const project = await Project.findById(updatedTask.project);
 
       if (project && project.supervisor) {
         await NotificationsService.createNotification({
           recipient: project.supervisor,
-          message: `Review Required: "${updatedTask.title}" has been submitted.`,
+          message: `Review Required: "${updatedTask.title}" has been submitted for project ${project.title}.`,
           type: "task"
         });
       }
 
       res.json({ status: "success", task: updatedTask });
     } catch (err) {
-      // If service fails because of "Not Assigned", we handle it here
+      console.error("[BACKEND ERROR]", err.message);
       res.status(400).json({ status: "error", message: err.message });
     }
   };
-
   /**
 
    * Action: Admin/Supervisor approves the work.
