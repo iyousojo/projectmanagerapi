@@ -27,10 +27,10 @@ class AuthService {
       throw new Error("Your account is pending admin approval.");
     }
 
-    // ✅ Crucial: Save the token so the app doesn't have to keep requesting it
+    // ✅ Save the token to the DB
     if (expoPushToken) {
       user.expoPushToken = expoPushToken;
-      await user.save();
+      await user.save(); // Triggers the fixed pre-save hook above
     }
 
     const token = jwt.sign(

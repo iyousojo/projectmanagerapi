@@ -14,7 +14,6 @@ class AuthRepository {
         role: "student",
         assignedSupervisor: supervisorId
       });
-      console.log(`📊 DB Sync: Found ${students.length} students`);
       return students;
     } catch (err) {
       console.error("❌ Repository Error:", err.message);

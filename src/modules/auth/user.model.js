@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
   gender: { type: String, enum: ["Male", "Female", "Other"] },
   faculty: { type: String },
   department: { type: String },
-  expoPushToken: { type: String, default: null }, // ✅ Stores the mobile token
+  expoPushToken: { type: String, default: null },
   profilePic: { type: String, default: "" },
   isAuthorized: { type: Boolean, default: false },
   emailVerified: { type: Boolean, default: false },
@@ -29,15 +29,16 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: Date
 }, { timestamps: true });
 
-// Password Hashing
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+// ✅ FIXED: Removed 'next' parameter. 
+// When using async functions in Mongoose hooks, simply returning or throwing is enough.
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
   } catch (error) {
-    next(error);
+    throw error; 
   }
 });
 
