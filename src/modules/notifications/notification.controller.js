@@ -28,6 +28,14 @@ class NotificationController {
       res.status(400).json({ status: "error", message: err.message });
     }
   };
+  deleteNotification = async (req, res) => {
+    try {
+      await NotificationRepository.delete(req.params.id, req.user._id);
+      res.json({ status: "success", message: "Notification deleted successfully" });
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
+    }
+  };
 }
 
 module.exports = new NotificationController();

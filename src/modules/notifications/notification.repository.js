@@ -34,6 +34,13 @@ class NotificationRepository {
       { isRead: true }
     );
   }
+
+  async delete(notificationId, userId) {
+    return await Notification.findOneAndDelete({
+      _id: notificationId,
+      recipient: userId // Security: Only the owner can delete it
+    });
+  }
 }
 
 module.exports = new NotificationRepository();
