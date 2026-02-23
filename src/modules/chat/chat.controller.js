@@ -58,32 +58,35 @@ class ChatController {
 
   // Get Messages
   getMessages = async (req, res) => {
-    try {
-      const { id } = req.params; // ProjectID or OtherUserID
-      const { isProject } = req.query;
-      const currentUserId = req.user._id;
+  try {
+    const { id } = req.params; // This is the targetId from the route
+    const { isProject } = req.query;
+    const currentUserId = req.user._id;
 
-      let query;
-      if (isProject === "true") {
-        query = { projectId: id };
-      } else {
-        query = {
-          $or: [
-            { sender: currentUserId, receiver: id },
-            { sender: id, receiver: currentUserId }
-          ]
-        };
-      }
-
-      const chat = await Chat.find(query)
-        .sort({ createdAt: 1 })
-        .populate("sender", "fullName profilePic");
-
-      res.json({ status: "success", chat });
-    } catch (err) {
-      res.status(400).json({ status: "error", message: err.message });
+    let query;
+    if (isProject === "true") {
+      // ❌ query = { projectId: id }; // CHANGE THIS
+      query = { project: id };       // ✅ MATCHES THE SERVICE LOGIC
+    } else {
+      query = {
+        $or: [
+          { sender: currentUserId, receiver: id },
+          { sender: id, receiver: currentUserId }
+        ],
+        project: null // Safety check for DMs
+      };
     }
-  };
+
+    const chat = await Chat.find(query)
+      .sort({ createdAt: 1 })
+      .populate("sender", "fullName profilePic");
+
+    res.json({ status: "success", chat });
+  } catch (err) {
+    res.status(400).json({ status: "error", message: err.message });
+  }
+};
+
 }
 
 module.exports = new ChatController();
