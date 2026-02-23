@@ -1,5 +1,5 @@
 const Chat = require("./chat.model");
-const Project = require("../project/project.model"); // Added missing import
+const Project = require("../project/project.model");
 const NotificationsService = require("../notifications/notification.service");
 
 class ChatController {
@@ -13,6 +13,7 @@ class ChatController {
         sender: senderId,
         message,
         createdAt: new Date(),
+        // ✅ Standardized to projectId
         ...(projectId ? { projectId } : { receiver: receiverId })
       };
 
@@ -23,14 +24,12 @@ class ChatController {
       if (projectId) {
         const project = await Project.findById(projectId);
         if (project) {
-          // Identify all members + supervisor, excluding the person who just sent the message
           const recipients = [
             project.supervisor, 
             project.projectHead, 
             ...(project.members || [])
           ].filter(id => id && id.toString() !== senderId.toString());
 
-          // Create unique set of IDs to avoid duplicate notifications
           const uniqueRecipients = [...new Set(recipients.map(r => r.toString()))];
 
           for (const userId of uniqueRecipients) {
@@ -42,7 +41,6 @@ class ChatController {
           }
         }
       } else if (receiverId) {
-        // Direct Message Notification
         await NotificationsService.createNotification({
           recipient: receiverId,
           message: `${req.user.fullName} sent you a message: "${message.substring(0, 30)}..."`,
@@ -58,35 +56,34 @@ class ChatController {
 
   // Get Messages
   getMessages = async (req, res) => {
-  try {
-    const { id } = req.params; // This is the targetId from the route
-    const { isProject } = req.query;
-    const currentUserId = req.user._id;
+    try {
+      const { id } = req.params; 
+      const { isProject } = req.query;
+      const currentUserId = req.user._id;
 
-    let query;
-    if (isProject === "true") {
-      // ❌ query = { projectId: id }; // CHANGE THIS
-      query = { project: id };       // ✅ MATCHES THE SERVICE LOGIC
-    } else {
-      query = {
-        $or: [
-          { sender: currentUserId, receiver: id },
-          { sender: id, receiver: currentUserId }
-        ],
-        project: null // Safety check for DMs
-      };
+      let query;
+      if (isProject === "true") {
+        // ✅ Use projectId to match the Schema
+        query = { projectId: id };
+      } else {
+        query = {
+          $or: [
+            { sender: currentUserId, receiver: id },
+            { sender: id, receiver: currentUserId }
+          ],
+          projectId: null // Ensure group chats don't leak into DMs
+        };
+      }
+
+      const chat = await Chat.find(query)
+        .sort({ createdAt: 1 })
+        .populate("sender", "fullName profilePic");
+
+      res.json({ status: "success", chat });
+    } catch (err) {
+      res.status(400).json({ status: "error", message: err.message });
     }
-
-    const chat = await Chat.find(query)
-      .sort({ createdAt: 1 })
-      .populate("sender", "fullName profilePic");
-
-    res.json({ status: "success", chat });
-  } catch (err) {
-    res.status(400).json({ status: "error", message: err.message });
-  }
-};
-
+  };
 }
 
 module.exports = new ChatController();

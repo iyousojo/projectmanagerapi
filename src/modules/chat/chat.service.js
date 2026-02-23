@@ -4,9 +4,7 @@ const mongoose = require("mongoose");
 
 class ChatService {
   async sendMessage(senderId, receiver, projectId, message, senderRole) {
-    // 1. Validation: If it's a project chat
     if (projectId) {
-      // Extra safety: Check if it's a valid hex string before querying DB
       if (!mongoose.Types.ObjectId.isValid(projectId)) {
         throw new Error("Invalid Project ID format");
       }
@@ -14,7 +12,6 @@ class ChatService {
       const project = await Project.findById(projectId);
       if (!project) throw new Error("Project not found");
 
-      // 2. Permission Logic
       if (senderRole === "student") {
         const headId = project.projectHead?._id || project.projectHead;
         if (headId.toString() !== senderId.toString()) {
@@ -23,11 +20,11 @@ class ChatService {
       }
     }
 
-    // 3. Prepare Data for Repository
+    // ✅ Match Schema keys: Use projectId, not project
     const data = { 
       sender: senderId, 
       message: message, 
-      ...(projectId ? { project: projectId } : { receiver: receiver }) 
+      ...(projectId ? { projectId: projectId } : { receiver: receiver }) 
     };
 
     return await ChatRepository.createMessage(data);

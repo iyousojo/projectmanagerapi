@@ -6,9 +6,7 @@ const { protect } = require("../auth/auth.middleware");
 router.use(protect);
 
 router.post("/", ChatController.sendMessage);
-
-// targetId can be a User ID (for DMs) or Project ID (for Groups)
-// Change :targetId to :id
+// ✅ Standardized parameter to :id to match ChatController destructuring
 router.get("/:id", ChatController.getMessages);
 
 module.exports = router;

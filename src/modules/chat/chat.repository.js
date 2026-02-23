@@ -2,7 +2,8 @@ const Chat = require("./chat.model");
 
 class ChatRepository {
   async createMessage(data) {
-    return await (await Chat.create(data)).populate("sender", "fullName profilePic");
+    const newChat = await Chat.create(data);
+    return await Chat.findById(newChat._id).populate("sender", "fullName profilePic");
   }
 
   // Logic for Individual DMs
@@ -12,13 +13,14 @@ class ChatRepository {
         { sender: userId1, receiver: userId2 },
         { sender: userId2, receiver: userId1 }
       ],
-      projectId: null // Ensure we don't grab group messages
-    }).sort("createdAt").populate("sender", "fullName");
+      projectId: null 
+    }).sort("createdAt").populate("sender", "fullName profilePic");
   }
 
   // Logic for Group/Project Chat
   async getProjectMessages(projectId) {
-    return await Chat.find({ project: projectId })
+    // ✅ Changed 'project' to 'projectId'
+    return await Chat.find({ projectId: projectId })
       .sort("createdAt")
       .populate("sender", "fullName profilePic");
   }
