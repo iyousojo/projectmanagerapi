@@ -132,19 +132,33 @@ Folder Structure (The Layout)
 Plaintext
 /cs-manager-api
 ├── server.js                # Entry point & Real-time Socket.io setup
+
 ├── .env                     # Secrets (JWT_SECRET, MONGO_URI, SMTP_PASS)
+
 ├── /src
+
 │   ├── /config              # MongoDB (Mongoose) & Nodemailer Transporter
+
 │   ├── /models              # Data Schemas (The "Truth" Layer)
+
 │   ├── /middleware          # Security Gates (The "Protection" Layer)
+
 │   │   ├── auth.js          # JWT & Email Verification check
+
 │   │   ├── role.js          # Role-Based Access (Admin/SuperAdmin)
+
 │   │   └── deadline.js      # Global Lockdown Logic
+
 │   ├── /controllers         # Request Handlers (The "Action" Layer)
+
 │   ├── /services            # Business Logic (The "Brain" Layer)
+
 │   │   ├── email.service.js # Auto-notifications
+
 │   │   └── task.service.js  # Validation for phase transitions
+
 │   ├── /routes              # Endpoint Maps (Auth, Admin, Supervisor, Student)
+
 │   └── /utils               # Helpers (Token Generators, Date Formatters)
 📊 2. Strategic Data Models
 A. User Model (Identity & Authorization)
