@@ -236,6 +236,7 @@ The mobile app uses this specific response to build the UI dynamically.
 
 JSON
 
+
 {
 
 
@@ -252,8 +253,10 @@ JSON
     "isAuthorized": true
 
   },
+  
+
   "project": {
-    
+
     "projectId": "proj_99",
 
     "isLead": true,
