@@ -129,6 +129,7 @@ This is the comprehensive, production-ready blueprint for the CS Department Proj
 The backend uses a Layered Service-Oriented Architecture. This ensures that the "Rules" (like deadlines) are separated from the "Actions" (like updating a database).
 
 Folder Structure (The Layout)
+
 Plaintext
 /cs-manager-api
 ├── server.js                # Entry point & Real-time Socket.io setup
