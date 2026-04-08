@@ -1,37 +1,231 @@
-# Project Management System - Backend API
 
-A robust RESTful API built with Node.js, Express, and MongoDB to manage student projects, task tracking, and real-time notifications.
+# CS Department Project Management System – Backend
 
-## 🚀 Features
-- **Role-Based Access Control (RBAC)**: Distinct permissions for Students, Admins (Supervisors), and Super-Admins.
-- **Project Lifecycle Management**: Tracks projects through phases (Pending -> Proposal -> Implementation -> Testing -> Completed).
-- **Automated Task History**: Automatically logs milestones when project phases are updated.
-- **Secure Authentication**: JWT-based authentication with protected middleware.
+This repository contains the backend for the CS Department Project Management System, designed for high accountability and strict academic oversight. It manages all deadlines, team changes, and project phase transitions, ensuring academic integrity and real-time collaboration.
 
-## 🛠️ API Architecture
-The system follows a Controller-Service-Repository pattern for clean separation of concerns.
+---
 
-### Project Endpoints (`/api/projects`)
-| Method | Endpoint | Access | Description |
-|:--- |:--- |:--- |:--- |
-| `POST` | `/` | Student/Admin | Create a new project. |
-| `GET` | `/` | Auth Users | List projects (Filtered by role). |
-| `GET` | `/:id` | Auth Users | Get full project details including tasks. |
-| `PATCH`| `/:id` | Admin | Update project status/phase. |
-| `POST` | `/:id/tasks` | Auth Users | Add a task or milestone to a project. |
-| `DELETE`| `/:id` | Admin | Remove a project. |
+## 🏛️ Architecture Overview
 
-## 🏗️ Data Models
-### Project Model
-- `title`: String (Required)
-- `description`: String (Required)
-- `status`: Enum (Pending, Proposal, Implementation, Testing, Completed)
-- `supervisor`: Ref -> User
-- `projectHead`: Ref -> User
-- `members`: Array [Ref -> User]
+- **Top-Down Authorization:** Projects and teams are created and managed by faculty (Super Admin, Admin/Supervisor).
+- **Strict Collaboration:** Students cannot self-organize; all team and project changes are admin-controlled.
+- **Phase Gatekeeping:** Project phases (Proposal → Methodology → Implementation → Defense) are advanced only by admin approval.
+- **Real-Time Updates:** All project updates are broadcast instantly using Socket.io.
 
-### Task Model
-- `title`: String
-- `description`: String
-- `project`: Ref -> Project (Required)
-- `assignedTo`: Ref -> User (Required)
+## 📁 Folder Structure
+
+```
+src/
+  server.js                # Express & Socket.io entry point
+  config/                  # MongoDB, SMTP, and other configs
+  modules/
+    auth/                  # Authentication & user management
+    chat/                  # Real-time chat features
+    notifications/         # Notification system
+    project/               # Project management logic
+    task/                  # Task management logic
+    users/                 # User profile and admin logic
+  sockets/                 # Socket.io event handlers
+  utils/                   # Helpers (mailers, cron jobs, validators)
+```
+
+## 🧩 Main Modules
+
+- **auth/**: User authentication, JWT, roles, and middleware.
+- **chat/**: Real-time group and project chat.
+- **notifications/**: Email and in-app notifications.
+- **project/**: Project creation, phase management, and team assignments.
+- **task/**: Task assignment, completion, and approval.
+- **users/**: User profile management and admin controls.
+
+## 🗃️ Data Models
+
+- **User:** Roles (student, admin, super-admin), authorization, supervisor assignment, email verification.
+- **Project:** Type (Individual/Group), lead, members, supervisor, deadlines, current phase.
+- **Task:** Linked to project phase, completion and approval status.
+- **Update:** Project timeline feed, real-time updates via Socket.io.
+
+## 🔒 Permissions Matrix
+
+| Feature             | Student | Lead | Supervisor | Super Admin |
+|---------------------|---------|------|------------|-------------|
+| Verify Email        | ✅      | ✅   | ✅         | ✅          |
+| View Project Feed   | ✅      | ✅   | ✅         | ❌          |
+| Complete Task       | ❌      | ✅   | ❌         | ❌          |
+| Approve Task        | ❌      | ❌   | ✅         | ❌          |
+| Advance Phase       | ❌      | ❌   | ✅         | ❌          |
+| Edit Roster         | ❌      | ❌   | ✅         | ❌          |
+| Link Stud/Super     | ❌      | ❌   | ❌         | ✅          |
+| Set Global Deadline | ❌      | ❌   | ❌         | ✅          |
+
+## ⚡ API Features
+
+- **Authentication:** JWT-based, role-aware.
+- **Project Management:** Admin-controlled creation, assignment, and phase advancement.
+- **Task Management:** Lead-only completion, supervisor approval.
+- **Notifications:** Email (Nodemailer), real-time (Socket.io).
+- **Chat:** Real-time group chat for project teams.
+- **Update Feed:** Automated and manual project updates.
+
+## 🛠️ Tech Stack
+
+- **Node.js** (Express)
+- **MongoDB** (Mongoose)
+- **Socket.io** (Real-time)
+- **Nodemailer** (Email)
+- **JWT** (Authentication)
+- **Joi** (Validation)
+- **node-cron** (Scheduled jobs)
+- **Firebase Admin** (Optional, for push notifications)
+- **dotenv** (Environment config)
+
+## 🚀 Getting Started
+
+1. **Clone the repo:**
+   ```
+   git clone <repo-url>
+   cd projectmanagerapi
+   ```
+
+2. **Install dependencies:**
+   ```
+   npm install
+   ```
+
+3. **Configure environment:**
+   - Copy `.env.example` to `.env` and fill in your MongoDB, JWT, and email credentials.
+
+4. **Run the server:**
+   ```
+   npm run dev
+   ```
+
+   The server runs on the port specified in your `.env` file.
+
+## 📲 API Usage
+
+- All endpoints are organized by module (auth, project, task, etc.).
+- Use JWT tokens for authenticated requests.
+- Real-time updates are available via Socket.io.
+
+## 🧪 Scripts
+
+- `npm run dev` – Start server with nodemon (auto-restart on changes)
+- `npm start` – Start server normally
+
+## 📄 License
+
+ISC
+
+---
+
+## Original Architecture & Logic (for reference)
+
+> The following section preserves the original architecture and logic description for developer reference.
+
+This is the comprehensive, production-ready blueprint for the CS Department Project Management System. This architecture balances academic rigor with collaborative flexibility, ensuring a strict chain of command.
+
+🏗️ 1. Complete System Architecture
+The backend uses a Layered Service-Oriented Architecture. This ensures that the "Rules" (like deadlines) are separated from the "Actions" (like updating a database).
+
+Folder Structure (The Layout)
+Plaintext
+/cs-manager-api
+├── server.js                # Entry point & Real-time Socket.io setup
+├── .env                     # Secrets (JWT_SECRET, MONGO_URI, SMTP_PASS)
+├── /src
+│   ├── /config              # MongoDB (Mongoose) & Nodemailer Transporter
+│   ├── /models              # Data Schemas (The "Truth" Layer)
+│   ├── /middleware          # Security Gates (The "Protection" Layer)
+│   │   ├── auth.js          # JWT & Email Verification check
+│   │   ├── role.js          # Role-Based Access (Admin/SuperAdmin)
+│   │   └── deadline.js      # Global Lockdown Logic
+│   ├── /controllers         # Request Handlers (The "Action" Layer)
+│   ├── /services            # Business Logic (The "Brain" Layer)
+│   │   ├── email.service.js # Auto-notifications
+│   │   └── task.service.js  # Validation for phase transitions
+│   ├── /routes              # Endpoint Maps (Auth, Admin, Supervisor, Student)
+│   └── /utils               # Helpers (Token Generators, Date Formatters)
+📊 2. Strategic Data Models
+A. User Model (Identity & Authorization)
+role: student, admin, super-admin.
+
+isVerified: Boolean (Requires email confirmation).
+
+isAuthorized: Boolean (Critical: Set by Super Admin to "unlock" the student).
+
+assignedSupervisor: Ref -> User (Admin).
+
+B. Project Model (The Hub)
+type: Individual or Group.
+
+studentLead: Ref -> User (The "Head" - the only one who can submit work).
+
+groupMembers: Array [Ref -> User] (Managed strictly by Admin).
+
+deadline: Date (Compulsory; set during authorization).
+
+currentPhase: Enum (Proposal, Methodology, Implementation, Defense).
+
+C. Task Model (Granular Progress)
+phase: String (e.g., "Implementation").
+
+isCompletedByStudent: Boolean (Triggered by Student Lead).
+
+isApprovedByAdmin: Boolean (Triggered by Supervisor).
+
+🤝 3. Collaboration & Update System
+The system encourages collaboration through a "Drop" Feed. This acts like a professional audit log and real-time message board.
+
+Admin Drops: When an Admin adds/removes a member or approves a phase, the system "drops" an automated message: "Prof. Smith approved the Methodology phase."
+
+Head Drops: The Student Lead can post status updates: "Draft 2 sent to supervisor's email for review."
+
+Real-time Sync: Using Socket.io, when a Lead completes a task, the Supervisor gets an instant notification on their dashboard.
+
+🔐 4. The Action-Permission Matrix
+Action	Student Member	Student Lead (Head)	Supervisor (Admin)	Super Admin
+Complete Task	❌ (View only)	✅	❌	❌
+Approve Task	❌	❌	✅	❌
+Manage Roster	❌	❌	✅	❌
+Advance Phase	❌	❌	✅	❌
+Authorize Student	❌	❌	❌	✅
+Assign Supervisor	❌	❌	❌	✅
+Set Project Deadline	❌	❌	❌	✅
+🛡️ 5. Deadline & Security Enforcement
+The Global Lockdown
+The deadline.js middleware runs on every student request.
+
+Logic: if (Date.now() > project.deadline) return 403 ("Project Period Expired").
+
+Impact: Students can still log in to view their work (for history), but all "Write" actions (Completing tasks, posting updates) are frozen until the Super Admin grants an extension.
+
+Strict Member Isolation
+Admin Privacy: Supervisors cannot see any student records until the Super Admin performs the formal assignment.
+
+Student Privacy: Students have no access to other students' projects, ensuring intellectual property remains within the assigned group.
+
+📡 6. The "Intelligence" Payload (Login JSON)
+The mobile app uses this specific response to build the UI dynamically.
+
+JSON
+{
+  "status": "success",
+  "token": "JWT_TOKEN",
+  "user": {
+    "name": "Alex",
+    "role": "student",
+    "isAuthorized": true
+  },
+  "project": {
+    "projectId": "proj_99",
+    "isLead": true,
+    "currentPhase": "Methodology",
+    "supervisor": "Dr. Miller",
+    "deadline": "2026-08-01",
+    "daysRemaining": 115,
+    "tasksCompleted": 4,
+    "tasksTotal": 10
+  }
+}
+This architecture ensures that the Computer Science Department can maintain a high standard of oversight while giving students a modern, real-time platform to manage their research.
