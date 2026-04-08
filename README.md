@@ -201,19 +201,29 @@ Real-time Sync: Using Socket.io, when a Lead completes a task, the Supervisor ge
 🔐 4. The Action-Permission Matrix
 Action	Student Member	Student Lead (Head)	Supervisor (Admin)	Super Admin
 Complete Task	❌ (View only)	✅	❌	❌
+
 Approve Task	❌	❌	✅	❌
+
 Manage Roster	❌	❌	✅	❌
+
 Advance Phase	❌	❌	✅	❌
+
+
 Authorize Student	❌	❌	❌	✅
+
 Assign Supervisor	❌	❌	❌	✅
+
 Set Project Deadline	❌	❌	❌	✅
+
 🛡️ 5. Deadline & Security Enforcement
 The Global Lockdown
 The deadline.js middleware runs on every student request.
 
 Logic: if (Date.now() > project.deadline) return 403 ("Project Period Expired").
 
+
 Impact: Students can still log in to view their work (for history), but all "Write" actions (Completing tasks, posting updates) are frozen until the Super Admin grants an extension.
+
 
 Strict Member Isolation
 Admin Privacy: Supervisors cannot see any student records until the Super Admin performs the formal assignment.
@@ -223,24 +233,43 @@ Student Privacy: Students have no access to other students' projects, ensuring i
 📡 6. The "Intelligence" Payload (Login JSON)
 The mobile app uses this specific response to build the UI dynamically.
 
+
 JSON
+
 {
+
+
   "status": "success",
+
   "token": "JWT_TOKEN",
+
   "user": {
+
     "name": "Alex",
+
     "role": "student",
+
     "isAuthorized": true
+
   },
   "project": {
     "projectId": "proj_99",
+
     "isLead": true,
+
     "currentPhase": "Methodology",
+
     "supervisor": "Dr. Miller",
+
     "deadline": "2026-08-01",
+
     "daysRemaining": 115,
+
     "tasksCompleted": 4,
+
     "tasksTotal": 10
   }
+
 }
+
 This architecture ensures that the Computer Science Department can maintain a high standard of oversight while giving students a modern, real-time platform to manage their research.
