@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 const http = require("http");
 const cors = require("cors"); // Added CORS
 const { Server } = require("socket.io");
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
 
 dotenv.config();
 
@@ -41,6 +44,8 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);
+// Mount under a different route if you have multiple APIs running
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/", (req, res) => res.send("API is running..."));
 

@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  title: Academic Project Management API
+  version: 3.0.0
+  description: System for student-supervisor allocation, project tracking, and task approval workflows.
+
+servers:
+  - url: http://localhost:5000
+    description: Local Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /api/users/superadmin/authorize:
+    post:
+      tags: [Allocation]
+      summary: Pair a Student with a Supervisor
+      description: Super-Admin only. Links a student to an admin for project oversight.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student successfully assigned to supervisor
+
+  /api/projects:
+    post:
+      tags: [Projects]
+      summary: Create a new project
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Project created
+    get:
+      tags: [Projects]
+      summary: List all projects for the logged-in user
+
+  /api/tasks/:id/submit:
+    put:
+      tags: [Tasks]
+      summary: Submit a completed task
+      description: Student endpoint to mark a task as "Pending Approval".
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task submitted
+
+  /api/tasks/:id/approve:
+    put:
+      tags: [Tasks]
+      summary: Approve a student's task
+      description: Supervisor endpoint to verify and close a task.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Task approved and points awarded

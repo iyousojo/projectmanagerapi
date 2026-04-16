@@ -1,5 +1,5 @@
 
-# CS Department Project Management System – Backend
+# ProjectManagerAPI - CS Department Project Management Backend
 
 This repository contains the backend for the CS Department Project Management System, designed for high accountability and strict academic oversight. It manages all deadlines, team changes, and project phase transitions, ensuring academic integrity and real-time collaboration.
 
@@ -17,7 +17,7 @@ This repository contains the backend for the CS Department Project Management Sy
 ```
 src/
   server.js                # Express & Socket.io entry point
-  config/                  # MongoDB, SMTP, and other configs
+config/db.js             # MongoDB config
   modules/
     auth/                  # Authentication & user management
     chat/                  # Real-time chat features
@@ -25,7 +25,7 @@ src/
     project/               # Project management logic
     task/                  # Task management logic
     users/                 # User profile and admin logic
-  sockets/                 # Socket.io event handlers
+  sockets/socket.js        # Socket.io event handlers
   utils/                   # Helpers (mailers, cron jobs, validators)
 ```
 
@@ -67,17 +67,28 @@ src/
 - **Chat:** Real-time group chat for project teams.
 - **Update Feed:** Automated and manual project updates.
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack (package.json v1.0.0)
 
-- **Node.js** (Express)
-- **MongoDB** (Mongoose)
-- **Socket.io** (Real-time)
-- **Nodemailer** (Email)
-- **JWT** (Authentication)
-- **Joi** (Validation)
-- **node-cron** (Scheduled jobs)
-- **Firebase Admin** (Optional, for push notifications)
-- **dotenv** (Environment config)
+**Core:**
+- Node.js, Express ^5.2.1
+- MongoDB (Mongoose ^9.2.0)
+
+**Real-time & Comms:**
+- Socket.io ^4.8.3
+- Nodemailer ^8.0.1, Resend ^6.9.2
+- Google APIs ^171.4.0 (Gmail)
+
+**Security:**
+- JWT ^9.0.3, bcryptjs ^3.0.3
+
+**Tools:**
+- Joi ^18.0.2 (validation)
+- node-cron ^4.2.1
+- Firebase Admin ^13.6.1
+- Swagger UI Express ^5.0.1
+- dotenv ^17.3.1, CORS ^2.8.6
+
+**Dev:** nodemon ^3.1.11
 
 ## 🚀 Getting Started
 
@@ -92,8 +103,21 @@ src/
    npm install
    ```
 
-3. **Configure environment:**
-   - Copy `.env.example` to `.env` and fill in your MongoDB, JWT, and email credentials.
+3. **Configure environment (.env):**
+   Create `.env` with:
+   ```
+   MONGO_URI=mongodb://localhost:27017/projectmanagerapi
+   PORT=5000
+   JWT_SECRET=your-super-secret-key-min32chars
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your@gmail.com
+   SMTP_PASS=app-password
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   GOOGLE_REFRESH_TOKEN=...
+   ```
+   See `.env.example` after creation.
 
 4. **Run the server:**
    ```
@@ -102,11 +126,23 @@ src/
 
    The server runs on the port specified in your `.env` file.
 
-## 📲 API Usage
+## 📋 API Endpoints (/api/)
 
-- All endpoints are organized by module (auth, project, task, etc.).
-- Use JWT tokens for authenticated requests.
-- Real-time updates are available via Socket.io.
+| Module | Key Routes |
+|--------|------------|
+| Auth | POST /auth/register, /auth/login, /auth/verify |
+| Users | GET /users/profile, PUT /users/:id/supervisor |
+| Projects | GET/POST/PUT/DEL /projects, /projects/:id/phase |
+| Tasks | GET/POST /tasks, PUT /tasks/:id/complete |
+| Chat | POST /chat/messages, GET /chat/:projectId |
+| Notifications | GET /notifications |
+
+**Swagger Docs:** http://localhost:5000/api-docs
+
+## 🔌 Socket.io
+
+- `joinRoom(userId)`: Personal notifications
+- Broadcast: task updates, chats, phase changes to teams/supervisors
 
 ## 🧪 Scripts
 
